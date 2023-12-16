@@ -1,3 +1,1 @@
-from src import GAT_w
-
-GAT_w.Test()
+print("Hello world!")
