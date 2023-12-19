@@ -1,5 +1,6 @@
 from colorama import Fore, Style, init
 import numpy as np
+import nltk
 
 import torch
 from torch import nn
@@ -7,9 +8,12 @@ from torch import nn
 # Initialize colorama
 init(autoreset = True)
 
+def sent_tokenize(sentence):
+    return nltk.sent_tokenize(sentence.strip())
+
 with open("data\\data.txt", "r", encoding="utf-8") as f:
-    # text = sent_tokenize(f.read())
-    text = [i.strip() for i in f.readlines()]
+    text = sent_tokenize(f.read())
+    # text = [i.strip() for i in f.readlines()]
 
 # Join all the sentences together and extract the unique characters from the combined sentences
 chars = set(''.join(text))
