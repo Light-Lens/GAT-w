@@ -100,24 +100,16 @@ class Model(nn.Module):
 
 
 def predict(model, character, temperature=1.0):
-    # One-hot encoding our input to fit into the model
     character = np.array([[char2int[c] for c in character]])
-    # character = one_hot_encode(character, dict_size, character.shape[1], 1)
     character = torch.from_numpy(character)
     character = character.to(device)
     
     out, hidden = model(character)
 
-    # prob = nn.functional.softmax(out[-1], dim=0).data
-    # # Taking the class with the highest probability score from the output
-    # char_ind = torch.max(prob, dim=0)[1].item()
-
     # Adjust the output probabilities with temperature
     prob = nn.functional.softmax(out[-1] / temperature, dim=0).data
-
     # Sample from the modified distribution
     char_ind = torch.multinomial(prob, 1).item()
-
 
     return int2char[char_ind], hidden
 
@@ -136,9 +128,9 @@ def generate(model, out_len, start='hey', temperature=1.0):
 
 # Define hyperparameters
 n_epochs = 1000
-hidden_dim = 8
-n_layers = 1
-lr = 0.01
+hidden_dim = 128
+n_layers = 4
+lr = 0.001
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers)
