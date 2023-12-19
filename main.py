@@ -137,8 +137,8 @@ def generate(model, out_len, start='hey'):
     return ''.join(chars)
 
 # Define hyperparameters
-n_epochs = 1000
-hidden_dim = 16
+n_epochs = 2000
+hidden_dim = 8
 n_layers = 2
 lr = 0.01
 
@@ -181,17 +181,18 @@ for epoch in range(1, n_epochs + 1):
             # print(f"{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
 
             # Generate simple sentence.
-            print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-            print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
-            print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
+            # print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
+            # print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
+            # print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, 'search what is a nuclear fusion'))
+            print()
 
     except KeyboardInterrupt:
         print()
         break
 
-    data["model_state"] = model.state_dict()
-    torch.save(data, "models\\model.pth")
-    print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
+    # data["model_state"] = model.state_dict()
+    # torch.save(data, "models\\model.pth")
+    # print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
 
 # print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
 # print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
