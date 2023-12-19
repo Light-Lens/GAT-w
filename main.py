@@ -62,7 +62,7 @@ input_seq = torch.LongTensor(input_seq).to(device)
 target_seq = torch.LongTensor(target_seq).to(device)
 
 class Model(nn.Module):
-    def __init__(self, input_size, output_size, hidden_dim, n_layers):
+    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim):
         super(Model, self).__init__()
 
         # Defining some parameters
@@ -70,22 +70,19 @@ class Model(nn.Module):
         self.n_layers = n_layers
 
         # Defining the layers
-        self.embedding = nn.Embedding(input_size, hidden_dim)
-        self.lstm = nn.LSTM(hidden_dim, hidden_dim, n_layers, batch_first=True)
-        # self.rnn = nn.RNN(input_size, hidden_dim, n_layers, batch_first=True) # RNN Layer
+        self.embedding = nn.Embedding(input_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True) # LSTM layer
         self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
-    
-    def forward(self, x):
-        batch_size = x.size(0)
 
-        # Pass input through the embedding layer
-        x = self.embedding(x)
+    def forward(self, x):
+        embedded = self.embedding(x)
+        batch_size = x.size(0)
 
         # Initialize hidden state for the first input using method defined below
         hidden = self.init_hidden(batch_size)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden = self.lstm(x, hidden)
+        out, hidden = self.lstm(embedded, hidden)
 
         # Reshaping the outputs such that it can be fit into the fully connected layer
         out = out.contiguous().view(-1, self.hidden_dim)
@@ -128,13 +125,26 @@ def generate(model, out_len, start='hey', temperature=1.0):
 
 # Define hyperparameters
 n_epochs = 1000
-hidden_dim = 128
-n_layers = 4
+hidden_dim = 8
+embedding_dim = 16
+n_layers = 2
 lr = 0.001
 
 # Instantiate the model with hyperparameters
-model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers)
+model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
 model = model.to(device) # Set the model to the device that we defined earlier (default is CPU)
+
+# Modify the one_hot_encode function to work with integer sequences
+def integer_encode(sequence, dict_size, seq_len, batch_size):
+    features = np.zeros((batch_size, seq_len), dtype=np.int64)
+    for i in range(batch_size):
+        for u in range(seq_len):
+            features[i, u] = sequence[i][u]
+    return features
+
+# Convert input_seq to integer-encoded sequences
+input_seq_int = integer_encode(input_seq, dict_size, seq_len, batch_size)
+input_seq_int = torch.from_numpy(input_seq_int)
 
 # Define Loss, Optimizer
 criterion = nn.CrossEntropyLoss()
@@ -153,8 +163,8 @@ data = {
 for epoch in range(1, n_epochs + 1):
     try:
         optimizer.zero_grad() # Clears existing gradients from previous epoch
-        input_seq = input_seq.to(device)
-        output, hidden = model(input_seq)
+        input_seq_int = input_seq_int.to(device)
+        output, hidden = model(input_seq_int)
         output = output.to(device)
         target_seq = target_seq.to(device)
         loss = criterion(output, target_seq.view(-1).long())
