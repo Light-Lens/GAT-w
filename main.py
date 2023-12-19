@@ -58,14 +58,8 @@ batch_size = len(text)
 # torch.cuda.is_available() checks and returns True if a GPU is available, else return False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def one_hot_encode(sequence, dict_size, seq_len, batch_size):
-    return torch.LongTensor(sequence).to(device)
-
-input_seq = one_hot_encode(input_seq, dict_size, seq_len, batch_size)
-print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {input_seq.shape} --> (Batch Size, Sequence Length, One-Hot Encoding Size)")
-
-# input_seq = torch.from_numpy(input_seq)
-target_seq = torch.Tensor(target_seq)
+input_seq = torch.LongTensor(input_seq).to(device)
+target_seq = torch.LongTensor(target_seq).to(device)
 
 class Model(nn.Module):
     def __init__(self, input_size, output_size, hidden_dim, n_layers):
