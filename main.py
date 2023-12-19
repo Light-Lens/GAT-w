@@ -55,25 +55,17 @@ dict_size = len(char2int)
 seq_len = maxlen - 1
 batch_size = len(text)
 
-def one_hot_encode(sequence, dict_size, seq_len, batch_size):
-    # Creating a multi-dimensional array of zeros with the desired output shape
-    features = np.zeros((batch_size, seq_len, dict_size), dtype=np.float32)
-    
-    # Replacing the 0 at the relevant character index with a 1 to represent that character
-    for i in range(batch_size):
-        for u in range(seq_len):
-            features[i, u, sequence[i][u]] = 1
+# torch.cuda.is_available() checks and returns True if a GPU is available, else return False
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    return features
+def one_hot_encode(sequence, dict_size, seq_len, batch_size):
+    return torch.LongTensor(sequence).to(device)
 
 input_seq = one_hot_encode(input_seq, dict_size, seq_len, batch_size)
 print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {input_seq.shape} --> (Batch Size, Sequence Length, One-Hot Encoding Size)")
 
-input_seq = torch.from_numpy(input_seq)
+# input_seq = torch.from_numpy(input_seq)
 target_seq = torch.Tensor(target_seq)
-
-# torch.cuda.is_available() checks and returns True if a GPU is available, else return False
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Model(nn.Module):
     def __init__(self, input_size, output_size, hidden_dim, n_layers):
@@ -84,17 +76,23 @@ class Model(nn.Module):
         self.n_layers = n_layers
 
         # Defining the layers
-        self.rnn = nn.RNN(input_size, hidden_dim, n_layers, batch_first=True) # RNN Layer
+        self.embedding = nn.Embedding(input_size, hidden_dim)
+        self.lstm = nn.LSTM(hidden_dim, hidden_dim, n_layers, batch_first=True)
+        # self.rnn = nn.RNN(input_size, hidden_dim, n_layers, batch_first=True) # RNN Layer
         self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
     
     def forward(self, x):
         batch_size = x.size(0)
 
-        #Initializing hidden state for first input using method defined below
+        # Pass input through the embedding layer
+        x = self.embedding(x)
+
+        # Initializing hidden state for first input using method defined below
         hidden = self.init_hidden(batch_size)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden = self.rnn(x, hidden)
+        # out, hidden = self.rnn(x, hidden)
+        out, hidden = self.lstm(x, hidden)
 
         # Reshaping the outputs such that it can be fit into the fully connected layer
         out = out.contiguous().view(-1, self.hidden_dim)
@@ -144,7 +142,7 @@ def generate(model, out_len, start='hey', temperature=1.0):
     return ''.join(chars)
 
 # Define hyperparameters
-n_epochs = 10000
+n_epochs = 1000
 hidden_dim = 8
 n_layers = 1
 lr = 0.01
