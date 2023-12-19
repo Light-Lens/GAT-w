@@ -87,11 +87,10 @@ class Model(nn.Module):
         # Pass input through the embedding layer
         x = self.embedding(x)
 
-        # Initializing hidden state for first input using method defined below
+        # Initialize hidden state for the first input using method defined below
         hidden = self.init_hidden(batch_size)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        # out, hidden = self.rnn(x, hidden)
         out, hidden = self.lstm(x, hidden)
 
         # Reshaping the outputs such that it can be fit into the fully connected layer
@@ -100,16 +99,16 @@ class Model(nn.Module):
 
         return out, hidden
 
-    # This method generates the first hidden state of zeros which will be used in the forward pass
     def init_hidden(self, batch_size):
-        hidden = torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device)
-        # Send the tensor holding the hidden state to the device we specified earlier as well
+        # Initialize both hidden state and cell state
+        hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device))
         return hidden
+
 
 def predict(model, character, temperature=1.0):
     # One-hot encoding our input to fit into the model
     character = np.array([[char2int[c] for c in character]])
-    character = one_hot_encode(character, dict_size, character.shape[1], 1)
+    # character = one_hot_encode(character, dict_size, character.shape[1], 1)
     character = torch.from_numpy(character)
     character = character.to(device)
     
@@ -189,6 +188,12 @@ for epoch in range(1, n_epochs + 1):
     except KeyboardInterrupt:
         print()
         break
+
+with torch.no_grad():
+    val_output, _ = model(input_seq)
+    val_loss = criterion(val_output, target_seq.view(-1).long())
+    val_perplexity = torch.exp(val_loss)
+    print(f'Validation Perplexity: {val_perplexity.item():.4f}')
 
     # data["model_state"] = model.state_dict()
     # torch.save(data, "models\\model.pth")
