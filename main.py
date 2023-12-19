@@ -126,7 +126,7 @@ def generate(model, out_len, start='hey', temperature=1.0):
 # Define hyperparameters
 n_epochs = 1000
 hidden_dim = 8
-embedding_dim = 16
+embedding_dim = 8
 n_layers = 2
 lr = 0.001
 
@@ -203,7 +203,7 @@ for epoch in range(1, n_epochs + 1):
 # loaded_model = loaded_model.to(device)
 # loaded_model.eval()
 
-text = "Me: Hi there! How are you? GAT-w"
+text = "search what is a nuclear fusion"
 print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", text)
 print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 40, text))
 
