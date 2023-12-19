@@ -189,12 +189,6 @@ for epoch in range(1, n_epochs + 1):
         print()
         break
 
-with torch.no_grad():
-    val_output, _ = model(input_seq)
-    val_loss = criterion(val_output, target_seq.view(-1).long())
-    val_perplexity = torch.exp(val_loss)
-    print(f'Validation Perplexity: {val_perplexity.item():.4f}')
-
     # data["model_state"] = model.state_dict()
     # torch.save(data, "models\\model.pth")
     # print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
