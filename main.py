@@ -162,41 +162,55 @@ data = {
 }
 
 # Training Run
-def train():
-    global input_seq, target_seq
-    for epoch in range(1, n_epochs + 1):
-        try:
-            optimizer.zero_grad() # Clears existing gradients from previous epoch
-            input_seq = input_seq.to(device)
-            output, hidden = model(input_seq)
-            output = output.to(device)
-            target_seq = target_seq.to(device)
-            loss = criterion(output, target_seq.view(-1).long())
-            loss.backward() # Does backpropagation and calculates gradients
-            optimizer.step() # Updates the weights accordingly
+for epoch in range(1, n_epochs + 1):
+    try:
+        optimizer.zero_grad() # Clears existing gradients from previous epoch
+        input_seq = input_seq.to(device)
+        output, hidden = model(input_seq)
+        output = output.to(device)
+        target_seq = target_seq.to(device)
+        loss = criterion(output, target_seq.view(-1).long())
+        loss.backward() # Does backpropagation and calculates gradients
+        optimizer.step() # Updates the weights accordingly
 
-            print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}', end="\r")
-            if epoch % (n_epochs/10) == 0:
-                # Save the model checkpoint
-                data["model_state"] = model.state_dict()
-                torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
-                print(f"{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved!\t")
+        print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}', end="\r")
+        if epoch % (n_epochs/10) == 0:
+            # Save the model checkpoint
+            data["model_state"] = model.state_dict()
+            torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+            print(f"{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
 
-                # Generate simple sentence.
-                print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-                print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
-                print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
+            # Generate simple sentence.
+            print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
+            print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
+            print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
 
-        except KeyboardInterrupt:
-            print()
-            break
+    except KeyboardInterrupt:
+        print()
+        break
 
-    data["model_state"] = model.state_dict()
-    torch.save(data, "models\\model.pth")
-    print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
-
-if __name__ == "__main__":
-    train()
+data["model_state"] = model.state_dict()
+print(data)
+torch.save(data, "models\\model.pth")
+print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
 
 # print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
 # print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
+
+data = torch.load("models\\model.pth")
+
+model_state = data["model_state"]
+dict_size = data["input_size"]
+hidden_dim = data["hidden_dim"]
+n_layers = data["n_layers"]
+device = data["device"]
+
+# Load the model
+loaded_model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=hidden_dim)
+loaded_model.load_state_dict(model_state)
+loaded_model = loaded_model.to(device)
+loaded_model.eval()
+
+# Example of using the loaded model for prediction
+generated_text = generate(loaded_model, 40, "search what is a nuclear fusion")
+print(f"{Fore.CYAN}{Style.BRIGHT}Generated text using loaded model:", generated_text)
