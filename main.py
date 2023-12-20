@@ -110,7 +110,7 @@ def predict(model, character, temperature=1.0):
 
     return int2char[char_ind], hidden
 
-def generate(model, out_len, start='hey', temperature=1.0):
+def generate(model, out_len, start, temperature=1.0):
     model.eval() # eval mode
     start = start.lower()
     # First off, run through the starting characters
@@ -121,14 +121,14 @@ def generate(model, out_len, start='hey', temperature=1.0):
         char, h = predict(model, chars, temperature)
         chars.append(char)
 
-    return ''.join(chars)
+    return "".join(chars)
 
 # Define hyperparameters
-n_epochs = 1000
+n_epochs = 4000
 hidden_dim = 8
 embedding_dim = 8
 n_layers = 2
-lr = 0.001
+lr = 0.01
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -203,9 +203,12 @@ for epoch in range(1, n_epochs + 1):
 # loaded_model = loaded_model.to(device)
 # loaded_model.eval()
 
-text = "search what is a nuclear fusion"
-print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", text)
-print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 40, text))
+text = [
+    "search about what is a nuclear fusion",
+    "search about how a search engine works",
+    "search about what is a search engine"
+]
 
-# print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", "search what is a nuclear fusion")
-# print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, "search what is a nuclear fusion"))
+for i in text:
+    print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
+    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, i))
