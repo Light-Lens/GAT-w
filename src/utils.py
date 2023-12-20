@@ -1,8 +1,10 @@
 import nltk
 
-# Load dataset
 def sent_tokenize(sentence):
     return nltk.sent_tokenize(sentence.strip())
+
+def tokenize(sentence):
+    return nltk.word_tokenize(sentence.strip())
 
 def load_data(path):
     with open(path, "r", encoding="utf-8") as f:

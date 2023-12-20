@@ -187,16 +187,16 @@ for epoch in range(1, n_epochs + 1):
         print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}', end="\r")
         if epoch % (n_epochs/10) == 0:
             # Save the model checkpoint
-            data["model_state"] = model.state_dict()
-            torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
-            print(f"\n{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
+            # data["model_state"] = model.state_dict()
+            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+            # print(f"\n{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
             print()
 
         # Check for early stopping
         if loss < best_loss:
             best_loss = loss
-            data["model_state"] = model.state_dict()
-            torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+            # data["model_state"] = model.state_dict()
+            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
 
         else:
             patience -= 1
@@ -208,9 +208,9 @@ for epoch in range(1, n_epochs + 1):
         print()
         break
 
-    data["model_state"] = model.state_dict()
-    torch.save(data, "models\\model.pth")
-    print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
+    # data["model_state"] = model.state_dict()
+    # torch.save(data, "models\\model.pth")
+    # print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
 
 # data = torch.load("models\\model.pth")
 
