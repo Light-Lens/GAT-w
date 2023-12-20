@@ -119,17 +119,20 @@ def generate(model, out_len, start, temperature=1.0):
     # Now pass in the previous words and get a new one
     for _ in range(size):
         word, h = predict(model, words, temperature)
+        if word == "<UNK>":
+            break
+
         words.append(word)
 
     return " ".join(words)
 
 # Define hyperparameters
-n_epochs = 5000
-hidden_dim = 16
+n_epochs = 2000
+hidden_dim = 8
 embedding_dim = 32
 n_layers = 2
 lr = 0.01
-patience = 3000 # Adjust patience as needed
+patience = 100 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -231,5 +234,5 @@ text = [
 
 for i in text:
     print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
-    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, i))
+    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 70, i))
     print()
