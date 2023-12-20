@@ -123,12 +123,12 @@ def generate(model, out_len, start, temperature=1.0):
     return "".join(chars)
 
 # Define hyperparameters
-n_epochs = 5000
+n_epochs = 4000
 hidden_dim = 16
-embedding_dim = 32
+embedding_dim = 16
 n_layers = 2
 lr = 0.01
-patience = 3000 # Adjust patience as needed
+patience = 2000 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -161,6 +161,21 @@ data = {
     "device": device
 }
 
+def test_model():
+    text = [
+        "search about what is a nuclear fusion",
+        "search about how a search engine works",
+        "search about what is a search engine",
+        "open chrome",
+        "start google chrome",
+        "launch microsoft edge"
+    ]
+
+    for i in text:
+        print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
+        print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, i))
+        print()
+
 # Training Run
 # Add early stopping
 best_loss = float('inf')
@@ -180,15 +195,12 @@ for epoch in range(1, n_epochs + 1):
         if epoch % (n_epochs/10) == 0:
             # Save the model checkpoint
             # data["model_state"] = model.state_dict()
-            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
-            # print(f"\n{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
+            # torch.save(data, f"models\\mid_epoch\\{epoch}.pth")
             print()
 
         # Check for early stopping
         if loss < best_loss:
             best_loss = loss
-            # data["model_state"] = model.state_dict()
-            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
 
         else:
             patience -= 1
@@ -200,9 +212,9 @@ for epoch in range(1, n_epochs + 1):
         print()
         break
 
-    # data["model_state"] = model.state_dict()
-    # torch.save(data, "models\\model.pth")
-    # print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
+data["model_state"] = model.state_dict()
+torch.save(data, "models\\model.pth")
+print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
 
 # data = torch.load("models\\model.pth")
 
@@ -219,16 +231,4 @@ for epoch in range(1, n_epochs + 1):
 # loaded_model = loaded_model.to(device)
 # loaded_model.eval()
 
-text = [
-    "search about what is a nuclear fusion",
-    "search about how a search engine works",
-    "search about what is a search engine",
-    "open spotify for me please",
-    "open chrome for me please",
-    "please open microsoft edge"
-]
-
-for i in text:
-    print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
-    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, i))
-    print()
+test_model()
