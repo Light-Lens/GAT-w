@@ -143,15 +143,16 @@ model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim
 model = model.to(device) # Set the model to the device that we defined earlier (default is CPU)
 
 # Modify the one_hot_encode function to work with integer sequences
-def integer_encode(sequence, dict_size, seq_len, batch_size):
+def integer_encode(sequence, seq_len, batch_size):
     features = np.zeros((batch_size, seq_len), dtype=np.int64)
     for i in range(batch_size):
         for u in range(seq_len):
             features[i, u] = sequence[i][u]
+
     return features
 
 # Convert input_seq to integer-encoded sequences
-input_seq_int = integer_encode(input_seq, dict_size, seq_len, batch_size)
+input_seq_int = integer_encode(input_seq, seq_len, batch_size)
 input_seq_int = torch.from_numpy(input_seq_int)
 
 # Define Loss, Optimizer
@@ -163,6 +164,7 @@ data = {
     "model_state": None,
     "input_size": dict_size,
     "hidden_dim": hidden_dim,
+    "embedding_dim": embedding_dim,
     "n_layers": n_layers,
     "device": device
 }
@@ -184,19 +186,17 @@ for epoch in range(1, n_epochs + 1):
 
         print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}', end="\r")
         if epoch % (n_epochs/10) == 0:
-            # print(f'{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{n_epochs}], Loss: {loss.item():.4f}')
-
             # Save the model checkpoint
-            # data["model_state"] = model.state_dict()
-            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
-            # print(f"{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
+            data["model_state"] = model.state_dict()
+            torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+            print(f"\n{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
             print()
 
         # Check for early stopping
         if loss < best_loss:
             best_loss = loss
-            # data["model_state"] = model.state_dict()
-            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+            data["model_state"] = model.state_dict()
+            torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
 
         else:
             patience -= 1
@@ -208,32 +208,32 @@ for epoch in range(1, n_epochs + 1):
         print()
         break
 
-    # data["model_state"] = model.state_dict()
-    # torch.save(data, "models\\model.pth")
-    # print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
+    data["model_state"] = model.state_dict()
+    torch.save(data, "models\\model.pth")
+    print(f"{Fore.GREEN}{Style.BRIGHT}Final trained model saved!")
 
 # data = torch.load("models\\model.pth")
 
 # model_state = data["model_state"]
 # dict_size = data["input_size"]
 # hidden_dim = data["hidden_dim"]
+# embedding_dim = data["embedding_dim"]
 # n_layers = data["n_layers"]
 # device = data["device"]
 
-# # Load the model
-# loaded_model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers)
+# Load the model
+# loaded_model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
 # loaded_model.load_state_dict(model_state)
 # loaded_model = loaded_model.to(device)
 # loaded_model.eval()
 
 text = [
-    "You"
-    # "search about what is a nuclear fusion",
-    # "search about how a search engine works",
-    # "search about what is a search engine",
-    # "open spotify for me please",
-    # "open chrome for me please",
-    # "please open microsoft edge"
+    "search about what is a nuclear fusion",
+    "search about how a search engine works",
+    "search about what is a search engine",
+    "open spotify for me please",
+    "open chrome for me please",
+    "please open microsoft edge"
 ]
 
 for i in text:
