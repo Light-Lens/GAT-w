@@ -19,41 +19,39 @@ with open("data\\data.txt", "r", encoding="utf-8") as f:
     for line in lines:
         text.extend(sent_tokenize(line))
 
-# Join all the sentences together and extract the unique words from the combined sentences
-words = set(' '.join(text).split())
+# Join all the sentences together and extract the unique characters from the combined sentences
+chars = set("".join(text))
 
-# Creating a dictionary that maps integers to the words
-word2int = {'<UNK>': 0}  # Start with an unknown token
-word2int.update({word: idx + 1 for idx, word in enumerate(words)})
+# Creating a dictionary that maps integers to the characters
+int2char = dict(enumerate(chars))
 
-# Creating another dictionary that maps words to integers
-int2word = {i: w for w, i in word2int.items()}
+# Creating another dictionary that maps characters to integers
+char2int = {char: ind for ind, char in int2char.items()}
 
-# The length of the longest sentence
-maxlen = len(max(text, key=lambda x: len(x.split())))
+# The length of the longest string
+maxlen = len(max(text, key=len))
 
-# A simple loop that loops through the list of sentences and pads with '<PAD>' until the length of the sentence matches the length of the longest sentence
+# A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
 for i in range(len(text)):
-    while len(text[i].split()) < maxlen:
-        text[i] += ' <PAD>'
+    while len(text[i]) < maxlen:
+        text[i] += " "
 
 # Creating lists that will hold our input and target sequences
 input_seq = []
 target_seq = []
 
 for i in range(len(text)):
-    # Remove last word for input sequence
-    input_seq.append(text[i].split()[:-1])
+    # Remove last character for input sequence
+    input_seq.append(text[i][:-1])
 
-    # Remove first word for target sequence
-    target_seq.append(text[i].split()[1:])
+    # Remove first character for target sequence
+    target_seq.append(text[i][1:])
 
-# Convert words to indices
 for i in range(len(text)):
-    input_seq[i] = [word2int.get(word, word2int['<UNK>']) for word in input_seq[i]]
-    target_seq[i] = [word2int.get(word, word2int['<UNK>']) for word in target_seq[i]]
+    input_seq[i] = [char2int[character] for character in input_seq[i]]
+    target_seq[i] = [char2int[character] for character in target_seq[i]]
 
-dict_size = len(word2int)
+dict_size = len(char2int)
 seq_len = maxlen - 1
 batch_size = len(text)
 
@@ -97,42 +95,40 @@ class Model(nn.Module):
         hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device))
         return hidden
 
-def predict(model, words, temperature=1.0):
-    indices = [word2int.get(word, word2int['<UNK>']) for word in words]
-    indices = torch.tensor(indices).unsqueeze(0).to(device)
-
-    out, hidden = model(indices)
+def predict(model, character, temperature=1.0):
+    character = np.array([[char2int[c] for c in character]])
+    character = torch.from_numpy(character)
+    character = character.to(device)
+    
+    out, hidden = model(character)
 
     # Adjust the output probabilities with temperature
     prob = nn.functional.softmax(out[-1] / temperature, dim=0).data
     # Sample from the modified distribution
-    word_ind = torch.multinomial(prob, 1).item()
+    char_ind = torch.multinomial(prob, 1).item()
 
-    return int2word[word_ind], hidden
+    return int2char[char_ind], hidden
 
 def generate(model, out_len, start, temperature=1.0):
-    model.eval()  # eval mode
+    model.eval() # eval mode
     start = start.lower()
-    # First off, run through the starting words
-    words = start.split()
-    size = out_len - len(words)
-    # Now pass in the previous words and get a new one
+    # First off, run through the starting characters
+    chars = list(start)
+    size = out_len - len(chars)
+    # Now pass in the previous characters and get a new one
     for _ in range(size):
-        word, h = predict(model, words, temperature)
-        if word == "<UNK>":
-            break
+        char, h = predict(model, chars, temperature)
+        chars.append(char)
 
-        words.append(word)
-
-    return " ".join(words)
+    return "".join(chars)
 
 # Define hyperparameters
-n_epochs = 2000
-hidden_dim = 8
+n_epochs = 5000
+hidden_dim = 16
 embedding_dim = 32
 n_layers = 2
 lr = 0.01
-patience = 100 # Adjust patience as needed
+patience = 3000 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -234,5 +230,5 @@ text = [
 
 for i in text:
     print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
-    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 70, i))
+    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 200, i))
     print()
