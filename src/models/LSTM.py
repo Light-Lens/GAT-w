@@ -1,7 +1,7 @@
 from torch import nn, torch
 
 class Model(nn.Module):
-    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim):
+    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim, dropout=0.5):
         super(Model, self).__init__()
 
         self.device = None
@@ -12,7 +12,7 @@ class Model(nn.Module):
 
         # Defining the layers
         self.embedding = nn.Embedding(input_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True) # LSTM layer
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True, dropout=dropout) # LSTM layer
         self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
 
     def forward(self, x):

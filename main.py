@@ -125,10 +125,11 @@ def generate(model, out_len, start, temperature=1.0):
 
 # Define hyperparameters
 n_epochs = 4000
-hidden_dim = 8
-embedding_dim = 8
+hidden_dim = 11
+embedding_dim = 11
 n_layers = 2
 lr = 0.01
+patience = 2000 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -160,6 +161,9 @@ data = {
 }
 
 # Training Run
+# Add early stopping
+best_loss = float('inf')
+
 for epoch in range(1, n_epochs + 1):
     try:
         optimizer.zero_grad() # Clears existing gradients from previous epoch
@@ -180,6 +184,18 @@ for epoch in range(1, n_epochs + 1):
             # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
             # print(f"{Fore.YELLOW}{Style.BRIGHT}Model checkpoint saved: models\\mid_epoch\\model_{epoch}.pth")
             print()
+
+        # Check for early stopping
+        if loss < best_loss:
+            best_loss = loss
+            # data["model_state"] = model.state_dict()
+            # torch.save(data, f"models\\mid_epoch\\model_{epoch}.pth")
+
+        else:
+            patience -= 1
+            if patience == 0:
+                print(f"\n{Fore.RED}{Style.BRIGHT}Early stopping:", "No improvement in validation loss.\n")
+                break
 
     except KeyboardInterrupt:
         print()
@@ -206,7 +222,8 @@ for epoch in range(1, n_epochs + 1):
 text = [
     "search about what is a nuclear fusion",
     "search about how a search engine works",
-    "search about what is a search engine"
+    "search about what is a search engine",
+    "open spotify for me please"
 ]
 
 for i in text:
