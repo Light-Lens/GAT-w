@@ -124,12 +124,19 @@ def generate(model, out_len, start, temperature=1.0):
     return "".join(chars)
 
 # Define hyperparameters
-n_epochs = 4000
-hidden_dim = 11
-embedding_dim = 11
+# n_epochs = 4000
+# hidden_dim = 11
+# embedding_dim = 11
+# n_layers = 2
+# lr = 0.01
+# patience = 2000 # Adjust patience as needed
+
+n_epochs = 5000
+hidden_dim = 16
+embedding_dim = 32
 n_layers = 2
 lr = 0.01
-patience = 2000 # Adjust patience as needed
+patience = 3000 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
 model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
@@ -220,12 +227,13 @@ for epoch in range(1, n_epochs + 1):
 # loaded_model.eval()
 
 text = [
-    "search about what is a nuclear fusion",
-    "search about how a search engine works",
-    "search about what is a search engine",
-    "open spotify for me please",
-    "open chrome for me please",
-    "please open microsoft edge"
+    "You"
+    # "search about what is a nuclear fusion",
+    # "search about how a search engine works",
+    # "search about what is a search engine",
+    # "open spotify for me please",
+    # "open chrome for me please",
+    # "please open microsoft edge"
 ]
 
 for i in text:
