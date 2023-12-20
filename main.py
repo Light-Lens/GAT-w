@@ -223,7 +223,9 @@ text = [
     "search about what is a nuclear fusion",
     "search about how a search engine works",
     "search about what is a search engine",
-    "open spotify for me please"
+    "open spotify for me please",
+    "open chrome for me please",
+    "please open microsoft edge"
 ]
 
 for i in text:
