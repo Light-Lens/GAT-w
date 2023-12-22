@@ -9,7 +9,7 @@ import random, numpy, torch
 # Initialize colorama
 init(autoreset = True)
 
-class w2:
+class Train:
     def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len=None, batch_size=None):
         # Define hyperparameters
         self.n_epochs = n_epochs
@@ -22,36 +22,10 @@ class w2:
 
         self.dropout = 0
         self.patience = 100
+        self.model_architecture = LSTM
 
         self.savepath = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    def predict(self, model, character, temperature=1.0):
-        character = numpy.array([[self.char2int[c] for c in character]])
-        character = torch.from_numpy(character)
-        character = character.to(self.device)
-        
-        out, hidden = model(character)
-
-        # Adjust the output probabilities with temperature
-        prob = nn.functional.softmax(out[-1] / temperature, dim=0).data
-        # Sample from the modified distribution
-        char_ind = torch.multinomial(prob, 1).item()
-
-        return self.int2char[char_ind], hidden
-
-    def generate(self, model, out_len, start, temperature=1.0):
-        model.eval() # eval mode
-        start = start.lower()
-        # First off, run through the starting characters
-        chars = list(start)
-        size = out_len - len(chars)
-        # Now pass in the previous characters and get a new one
-        for _ in range(size):
-            char, h = self.predict(model, chars, temperature)
-            chars.append(char)
-
-        return "".join(chars)
 
     # Preprocess data
     def preprocess(self, path: str):
@@ -122,7 +96,7 @@ class w2:
         print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
 
         # Instantiate the model with hyperparameters
-        model = LSTM(
+        model = self.model_architecture(
             input_size=self.dict_size,
             output_size=self.dict_size,
             hidden_dim=self.hidden_dim,
