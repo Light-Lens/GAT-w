@@ -1,8 +1,8 @@
 from torch import nn, torch
 
-class Model(nn.Module):
+class LSTM(nn.Module):
     def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim, dropout=0):
-        super(Model, self).__init__()
+        super(LSTM, self).__init__()
 
         # Defining device
         self.device = None
