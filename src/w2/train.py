@@ -1,9 +1,11 @@
-from torch import nn
-
+from colorama import Fore, Style, init
 from src.utils import sent_tokenize
 from src.models import LSTM
-
+from torch import nn
 import random, numpy, torch
+
+# Initialize colorama
+init(autoreset = True)
 
 class train:
     def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len=None, batch_size=None):
@@ -17,7 +19,7 @@ class train:
         self.batch_size = batch_size
 
         self.dropout = 0
-        self.patience = 100
+        self.patience = 500
         self.model_architecture = LSTM
 
         self.savepath = None
@@ -25,6 +27,7 @@ class train:
 
     # Preprocess data
     def preprocess(self, path: str):
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Preprocessing text..")
         with open(path, "r", encoding="utf-8") as f:
             data = [i.strip() for i in f.readlines()]
 
@@ -86,7 +89,7 @@ class train:
         return features
 
     def train(self):
-        print(f"Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
 
         # Instantiate the model with hyperparameters
         model = self.model_architecture(
@@ -122,7 +125,7 @@ class train:
                 loss.backward() # Does backpropagation and calculates gradients
                 optimizer.step() # Updates the weights accordingly
 
-                print(f"Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
+                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
                 if epoch % (self.n_epochs/10) == 0:
                     print()
 
@@ -133,7 +136,7 @@ class train:
                 else:
                     self.patience -= 1
                     if self.patience == 0:
-                        print(f"\nEarly stopping:", "No improvement in validation loss.\n")
+                        print(f"\n{Fore.RED}{Style.BRIGHT}Early stopping:", "No improvement in validation loss.\n")
                         break
 
             except KeyboardInterrupt:

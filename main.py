@@ -1,9 +1,9 @@
 from src.w2.train import train
 import src.w2.eval as eval, torch
 
-T1 = train(n_epochs = 1000, hidden_dim = 16, embedding_dim = 16, n_layers = 2, lr = 0.01)
+T1 = train(n_epochs = 2000, hidden_dim = 12, embedding_dim = 12, n_layers = 2, lr = 0.01)
 T1.savepath = "models\\model.pth"
-T1.patience = 500
+T1.patience = 1000
 
 T1.preprocess("data\\text_extraction_data.txt")
 model_data = T1.train()
