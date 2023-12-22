@@ -57,10 +57,13 @@ class w2:
     def preprocess(self, path: str):
         print(f"{Fore.YELLOW}{Style.BRIGHT}1.", "Loading data..")
         with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
+            data = [i.strip() for i in f.readlines()]
 
         print(f"{Fore.YELLOW}{Style.BRIGHT}2.", "Preprocessing..")
-        sentences = sent_tokenize(text)
+        sentences = []
+        for text in data:
+            sentences.extend(sent_tokenize(text))
+
         random.shuffle(sentences)
 
         # Join all the sentences together and extract the unique characters from the combined sentences
@@ -95,6 +98,9 @@ class w2:
             self.input_seq[i] = [self.char2int[character] for character in self.input_seq[i]]
             self.target_seq[i] = [self.char2int[character] for character in self.target_seq[i]]
 
+        self.input_seq = torch.LongTensor(self.input_seq).to(self.device)
+        self.target_seq = torch.LongTensor(self.target_seq).to(self.device)
+
         self.dict_size = len(self.char2int)
         if self.seq_len == None:
             self.seq_len = maxlen - 1
@@ -113,6 +119,7 @@ class w2:
 
     def train(self):
         print(f"{Fore.YELLOW}{Style.BRIGHT}3.", "Preparing model to train..")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
 
         # Instantiate the model with hyperparameters
         model = LSTM(
@@ -149,7 +156,7 @@ class w2:
                 loss.backward() # Does backpropagation and calculates gradients
                 optimizer.step() # Updates the weights accordingly
 
-                print(f"Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
+                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
                 if epoch % (self.n_epochs/10) == 0:
                     print()
 
@@ -167,10 +174,8 @@ class w2:
                 print()
                 break
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}5.", "Training complete..")
-
         if self.savepath != None:
-            print(f"{Fore.YELLOW}{Style.BRIGHT}6.", "Saving model..")
+            print(f"{Fore.YELLOW}{Style.BRIGHT}5.", "Saving model..")
 
             # Define save data dict
             savedata = {
@@ -184,3 +189,5 @@ class w2:
             }
 
             torch.save(savedata, self.savepath)
+
+        return model

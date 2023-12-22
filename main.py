@@ -1,4 +1,4 @@
-from w2.w2 import w2
+from src.w2.w2 import w2
 
 T1 = w2(
     n_epochs = 1000,
@@ -8,9 +8,26 @@ T1 = w2(
     lr = 0.01
 )
 
-T1.preprocess("data\\text_extraction.txt")
-T1.train()
+T1.patience = 500
 
+T1.preprocess("data\\text_extraction_data.txt")
+trained_model = T1.train()
+
+text = [
+    "search about what is a nuclear fusion",
+    "search about how a search engine works",
+    "search about what is a search engine",
+    "open chrome",
+    "start google chrome",
+    "open search engine",
+    "search on google for google chrome",
+    "launch microsoft edge"
+]
+
+for i in text:
+    print("Input text:", i)
+    print("Generated text:", T1.generate(trained_model, 100, i))
+    print()
 
 
 
