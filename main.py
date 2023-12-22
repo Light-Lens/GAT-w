@@ -1,3 +1,24 @@
+from w2.w2 import w2
+
+T1 = w2(
+    n_epochs = 1000,
+    hidden_dim = 16,
+    embedding_dim = 16,
+    n_layers = 2,
+    lr = 0.01
+)
+
+T1.preprocess("data\\text_extraction.txt")
+T1.train()
+
+
+
+
+
+
+
+
+"""
 from colorama import Fore, Style, init
 import numpy as np
 import random, nltk
@@ -242,3 +263,4 @@ for i in text:
     print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
     print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 500, i))
     print()
+"""
