@@ -1,36 +1,36 @@
 from torch import nn
-from src.utils import sent_tokenize
-import random, numpy, torch
+import torch, numpy
 
-class Eval:
-    def __init__(self, device):
-        self.device = device
+class eval:
+    def __init__(self, model_data):
+        self.model_state = model_data["model_state"]
+        self.dict_size = model_data["input_size"]
+        self.hidden_dim = model_data["hidden_dim"]
+        self.embedding_dim = model_data["embedding_dim"]
+        self.n_layers = model_data["n_layers"]
+        self.dropout = model_data["dropout"]
+        self.device = model_data["device"]
+        self.int2char = model_data["int2char"]
+        self.char2int = model_data["char2int"]
+        self.model_architecture = model_data["model_architecture"]
 
-    def load_dataset(self, path):
-        with open(path, "r", encoding="utf-8") as f:
-            data = [i.strip() for i in f.readlines()]
+        self.model = self.model_architecture(
+            input_size = self.dict_size,
+            output_size = self.dict_size,
+            hidden_dim = self.hidden_dim,
+            n_layers = self.n_layers,
+            embedding_dim = self.embedding_dim,
+            dropout = self.dropout
+        )
+        self.model.load_state_dict(self.model_state)
+        self.model = self.model.to(self.device)
 
-        sentences = []
-        for text in data:
-            sentences.extend(sent_tokenize(text))
-
-        random.shuffle(sentences)
-
-        # Join all the sentences together and extract the unique characters from the combined sentences
-        chars = set("".join(sentences))
-
-        # Creating a dictionary that maps integers to the characters
-        self.int2char = dict(enumerate(chars))
-
-        # Creating another dictionary that maps characters to integers
-        self.char2int = {char: ind for ind, char in self.int2char.items()}
-
-    def predict(self, model, character, temperature=1.0):
+    def predict(self, character, temperature=1.0):
         character = numpy.array([[self.char2int[c] for c in character]])
         character = torch.from_numpy(character)
         character = character.to(self.device)
-
-        out, hidden = model(character)
+        
+        out, hidden = self.model(character)
 
         # Adjust the output probabilities with temperature
         prob = nn.functional.softmax(out[-1] / temperature, dim=0).data
@@ -39,15 +39,15 @@ class Eval:
 
         return self.int2char[char_ind], hidden
 
-    def generate(self, model, out_len, start, temperature=1.0):
-        model.eval() # eval mode
-        start = start.lower()
+    def generate(self, seed, outlen, temperature=1.0):
+        self.model.eval() # eval mode
+        seed = seed.lower()
         # First off, run through the starting characters
-        chars = list(start)
-        size = out_len - len(chars)
+        chars = list(seed)
+        size = outlen - len(chars)
         # Now pass in the previous characters and get a new one
         for _ in range(size):
-            char, h = self.predict(model, chars, temperature)
+            char, h = self.predict(chars, temperature)
             chars.append(char)
 
         return "".join(chars)

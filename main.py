@@ -1,35 +1,14 @@
-# from src.w2.train import Train
-from src.models import LSTM
-from src.w2.eval import Eval
-import torch
+from src.w2.train import train
+import src.w2.eval as eval, torch
 
-# T1 = Train(n_epochs = 1000, hidden_dim = 16, embedding_dim = 16, n_layers = 2, lr = 0.01)
-# T1.savepath = "models\\model.pth"
-# T1.patience = 500
+T1 = train(n_epochs = 1000, hidden_dim = 16, embedding_dim = 16, n_layers = 2, lr = 0.01)
+T1.savepath = "models\\model.pth"
+T1.patience = 500
 
-# T1.preprocess("data\\text_extraction_data.txt")
-# model = T1.train()
+T1.preprocess("data\\text_extraction_data.txt")
+model_data = T1.train()
 
-saved_model = torch.load("models\\model.pth")
-
-model_state = saved_model["model_state"]
-dict_size = saved_model["input_size"]
-hidden_dim = saved_model["hidden_dim"]
-embedding_dim = saved_model["embedding_dim"]
-n_layers = saved_model["n_layers"]
-dropout = saved_model["dropout"]
-device = saved_model["device"]
-
-model = LSTM(
-    input_size = dict_size,
-    output_size = dict_size,
-    hidden_dim = hidden_dim,
-    n_layers = n_layers,
-    embedding_dim = embedding_dim,
-    dropout = dropout
-)
-model.load_state_dict(model_state)
-model = model.to(device)
+# model_data = torch.load("models\\model.pth")
 
 text = [
     "search about what is a nuclear fusion",
@@ -42,11 +21,11 @@ text = [
     "launch microsoft edge"
 ]
 
-T1 = Eval(device)
+C1 = eval.eval(model_data)
 
 for i in text:
     print("Input text:", i)
-    print("Generated text:", T1.generate(model, 100, i))
+    print("Generated text:", C1.generate(i, 100))
     print()
 
 

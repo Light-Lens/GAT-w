@@ -1,4 +1,3 @@
-from colorama import Fore, Style, init
 from torch import nn
 
 from src.utils import sent_tokenize
@@ -6,10 +5,7 @@ from src.models import LSTM
 
 import random, numpy, torch
 
-# Initialize colorama
-init(autoreset = True)
-
-class Train:
+class train:
     def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len=None, batch_size=None):
         # Define hyperparameters
         self.n_epochs = n_epochs
@@ -29,11 +25,9 @@ class Train:
 
     # Preprocess data
     def preprocess(self, path: str):
-        print(f"{Fore.YELLOW}{Style.BRIGHT}1.", "Loading data..")
         with open(path, "r", encoding="utf-8") as f:
             data = [i.strip() for i in f.readlines()]
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}2.", "Preprocessing..")
         sentences = []
         for text in data:
             sentences.extend(sent_tokenize(text))
@@ -92,8 +86,7 @@ class Train:
         return features
 
     def train(self):
-        print(f"{Fore.YELLOW}{Style.BRIGHT}3.", "Preparing model to train..")
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
 
         # Instantiate the model with hyperparameters
         model = self.model_architecture(
@@ -118,7 +111,6 @@ class Train:
         best_loss = float('inf')
 
         # Train the model
-        print(f"{Fore.YELLOW}{Style.BRIGHT}4.", "Training..")
         for epoch in range(1, self.n_epochs + 1):
             try:
                 optimizer.zero_grad() # Clears existing gradients from previous epoch
@@ -130,7 +122,7 @@ class Train:
                 loss.backward() # Does backpropagation and calculates gradients
                 optimizer.step() # Updates the weights accordingly
 
-                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
+                print(f"Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
                 if epoch % (self.n_epochs/10) == 0:
                     print()
 
@@ -141,27 +133,28 @@ class Train:
                 else:
                     self.patience -= 1
                     if self.patience == 0:
-                        print(f"\n{Fore.RED}{Style.BRIGHT}Early stopping:", "No improvement in validation loss.\n")
+                        print(f"\nEarly stopping:", "No improvement in validation loss.\n")
                         break
 
             except KeyboardInterrupt:
                 print()
                 break
 
+        # Define save data dict
+        model_data = {
+            "model_state": model.state_dict(),
+            "input_size": self.dict_size,
+            "hidden_dim": self.hidden_dim,
+            "embedding_dim": self.embedding_dim,
+            "n_layers": self.n_layers,
+            "dropout": self.dropout,
+            "device": self.device,
+            "int2char": self.int2char,
+            "char2int": self.char2int,
+            "model_architecture": self.model_architecture
+        }
+
         if self.savepath != None:
-            print(f"{Fore.YELLOW}{Style.BRIGHT}5.", "Saving model..")
+            torch.save(model_data, self.savepath)
 
-            # Define save data dict
-            savedata = {
-                "model_state": model.state_dict(),
-                "input_size": self.dict_size,
-                "hidden_dim": self.hidden_dim,
-                "embedding_dim": self.embedding_dim,
-                "n_layers": self.n_layers,
-                "dropout": self.dropout,
-                "device": self.device
-            }
-
-            torch.save(savedata, self.savepath)
-
-        return model
+        return model_data
