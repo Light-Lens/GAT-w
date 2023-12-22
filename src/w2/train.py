@@ -1,20 +1,26 @@
 from colorama import Fore, Style, init
 from torch import nn
-import random, torch
 from models import LSTM
+import random, torch, numpy
 
 # Initialize colorama
 init(autoreset = True)
 
 class TextDataLoader:
-    def __init__(self, filepath, utils):
-        self.utils = utils
+    def __init__(self, filepath):
+        # Define dataset location
+        self.filepath = filepath
 
-        with open(filepath, "r", encoding="utf-8") as f:
-            return f.read()
+        # Define input size and input/target sequence
+        self.dict_size = None
+        self.input_seq = None
+        self.target_seq = None
 
     def preprocess_data(self, text):
-        sentences = self.utils.sent_tokenize(text)
+        with open(self.filepath, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        sentences = sent_tokenize(text)
         random.shuffle(sentences)
 
         # Join all the sentences together and extract the unique characters from the combined sentences
@@ -49,12 +55,19 @@ class TextDataLoader:
             input_seq[i] = [char2int[character] for character in input_seq[i]]
             target_seq[i] = [char2int[character] for character in target_seq[i]]
 
-        dict_size = len(char2int)
-        seq_len = maxlen - 1
-        batch_size = len(sentences)
+        # dict_size = len(char2int)
+        # seq_len = maxlen - 1
+        # batch_size = len(sentences)
+
+        self.dict_size = len(char2int)
+        self.input_seq = input_seq
+        self.target_seq = target_seq
 
 class Train:
-    def __init__(self, n_epochs, seq_len, batch_size, hidden_dim, embedding_dim, n_layers, lr):
+    def __init__(self, input_size, output_size, n_epochs, seq_len, batch_size, hidden_dim, embedding_dim, n_layers, lr):
+        self.input_size = input_size
+        self.output_size = output_size
+
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.seq_len = seq_len
@@ -69,6 +82,7 @@ class Train:
         self.savepath = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        # Define save data dict
         self.savedata = {
             "model_state": None,
             "input_size": self.input_size,
@@ -79,6 +93,15 @@ class Train:
             "dropout": self.dropout,
             "device": self.device
         }
+
+    # Modify the one_hot_encode function to work with integer sequences
+    def integer_encode(self, sequence, seq_len, batch_size):
+        features = numpy.zeros((batch_size, seq_len), dtype=numpy.int64)
+        for i in range(batch_size):
+            for u in range(seq_len):
+                features[i, u] = sequence[i][u]
+
+        return features
 
     def train(self):
         # Instantiate the model with hyperparameters
@@ -91,6 +114,10 @@ class Train:
             dropout=self.dropout
         )
         model = model.to(self.device) # Set the model to the device that we defined earlier (default is CPU)
+
+        # Convert input_seq to integer-encoded sequences
+        input_seq_int = self.integer_encode(input_seq, self.seq_len, self.batch_size)
+        input_seq_int = torch.from_numpy(input_seq_int)
 
         # Loss and optimizer
         criterion = nn.CrossEntropyLoss()
