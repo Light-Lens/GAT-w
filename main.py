@@ -1,10 +1,9 @@
 from colorama import Fore, Style, init
 import numpy as np
-import nltk
+import random, nltk
 
 import torch
 from torch import nn
-from torch.nn import Transformer
 
 # Initialize colorama
 init(autoreset = True)
@@ -13,12 +12,14 @@ init(autoreset = True)
 def sent_tokenize(sentence):
     return nltk.sent_tokenize(sentence.strip())
 
-with open("data\\text_extraction_data.txt", "r", encoding="utf-8") as f:
+with open("data\\data.txt", "r", encoding="utf-8") as f:
     lines = [i.strip() for i in f.readlines()]
     text = []
 
     for line in lines:
         text.extend(sent_tokenize(line))
+
+    random.shuffle(text)
 
 # Join all the sentences together and extract the unique characters from the combined sentences
 chars = set("".join(text))
@@ -63,7 +64,7 @@ input_seq = torch.LongTensor(input_seq).to(device)
 target_seq = torch.LongTensor(target_seq).to(device)
 
 class Model(nn.Module):
-    def __init__(self, input_size, output_size, n_head, hidden_dim, n_layers, embedding_dim, dropout=0.5):
+    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim, dropout=0):
         super(Model, self).__init__()
 
         # Defining some parameters
@@ -73,45 +74,29 @@ class Model(nn.Module):
         # Defining the layers
         self.embedding = nn.Embedding(input_size, embedding_dim)
 
-        self.transformer = Transformer(
-            d_model = hidden_dim,
-            nhead = n_head,
-            num_encoder_layers = n_layers,
-            num_decoder_layers = n_layers,
-            dim_feedforward=hidden_dim * 4,
-            dropout=dropout
-        )
-        self.fc = nn.Linear(hidden_dim, output_size)
-
-        # self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True) # LSTM layer
-        # self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True, dropout=dropout) # LSTM layer
+        self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
 
     def forward(self, x):
         embedded = self.embedding(x)
-        output = self.transformer(embedded, embedded)
-        output = self.fc(output)
-        return output, None  # No hidden state in transformers
+        batch_size = x.size(0)
 
-        # embedded = self.embedding(x)
-        # batch_size = x.size(0)
+        # Initialize hidden state for the first input using method defined below
+        hidden = self.init_hidden(batch_size)
 
-        # # Initialize hidden state for the first input using method defined below
-        # hidden = self.init_hidden(batch_size)
+        # Passing in the input and hidden state into the model and obtaining outputs
+        out, hidden = self.lstm(embedded, hidden)
 
-        # # Passing in the input and hidden state into the model and obtaining outputs
-        # out, hidden = self.lstm(embedded, hidden)
+        # Reshaping the outputs such that it can be fit into the fully connected layer
+        out = out.contiguous().view(-1, self.hidden_dim)
+        out = self.fc(out)
 
-        # # Reshaping the outputs such that it can be fit into the fully connected layer
-        # out = out.contiguous().view(-1, self.hidden_dim)
-        # out = self.fc(out)
-
-        # return out, hidden
+        return out, hidden
 
     def init_hidden(self, batch_size):
-        return None
         # Initialize both hidden state and cell state
-        # hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device))
-        # return hidden
+        hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device))
+        return hidden
 
 def predict(model, character, temperature=1.0):
     character = np.array([[char2int[c] for c in character]])
@@ -141,15 +126,16 @@ def generate(model, out_len, start, temperature=1.0):
     return "".join(chars)
 
 # Define hyperparameters
-n_epochs = 4000
+n_epochs = 10000
 hidden_dim = 16
 embedding_dim = 16
-n_layers = 2
+n_layers = 4
+dropout = 0
 lr = 0.01
-patience = 2000 # Adjust patience as needed
+patience = 10000 # Adjust patience as needed
 
 # Instantiate the model with hyperparameters
-model = Model(input_size=dict_size, output_size=dict_size, n_head=4, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim)
+model = Model(input_size=dict_size, output_size=dict_size, hidden_dim=hidden_dim, n_layers=n_layers, embedding_dim=embedding_dim, dropout=dropout)
 model = model.to(device) # Set the model to the device that we defined earlier (default is CPU)
 
 # Modify the one_hot_encode function to work with integer sequences
@@ -170,14 +156,15 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
 # Save data details for the trained model
-# data = {
-#     "model_state": None,
-#     "input_size": dict_size,
-#     "hidden_dim": hidden_dim,
-#     "embedding_dim": embedding_dim,
-#     "n_layers": n_layers,
-#     "device": device
-# }
+data = {
+    "model_state": None,
+    "input_size": dict_size,
+    "hidden_dim": hidden_dim,
+    "embedding_dim": embedding_dim,
+    "dropout": dropout,
+    "n_layers": n_layers,
+    "device": device
+}
 
 # Training Run
 # Add early stopping
@@ -185,15 +172,12 @@ best_loss = float('inf')
 
 for epoch in range(1, n_epochs + 1):
     try:
-        optimizer.zero_grad() # Clears existing gradients from the previous epoch
+        optimizer.zero_grad() # Clears existing gradients from previous epoch
         input_seq_int = input_seq_int.to(device)
         output, hidden = model(input_seq_int)
-        output = output.permute(0, 2, 1)  # Permute to match the shape expected by CrossEntropyLoss
-        output = output.contiguous().view(-1, dict_size)  # Reshape to (batch_size * seq_len, dict_size)
-        target_seq_flat = target_seq.view(-1).long()
-        target_seq_flat = target_seq_flat.to(device)
-
-        loss = criterion(output, target_seq_flat)
+        output = output.to(device)
+        target_seq = target_seq.to(device)
+        loss = criterion(output, target_seq.view(-1).long())
         loss.backward() # Does backpropagation and calculates gradients
         optimizer.step() # Updates the weights accordingly
 
@@ -237,16 +221,24 @@ for epoch in range(1, n_epochs + 1):
 # loaded_model = loaded_model.to(device)
 # loaded_model.eval()
 
+# text = [
+#     "search about what is a nuclear fusion",
+#     "search about how a search engine works",
+#     "search about what is a search engine",
+#     "open chrome",
+#     "start google chrome",
+#     "open search engine",
+#     "search on google for google chrome",
+#     "launch microsoft edge"
+# ]
+
 text = [
-    "search about what is a nuclear fusion",
-    "search about how a search engine works",
-    "search about what is a search engine",
-    "open chrome",
-    "start google chrome",
-    "launch microsoft edge"
+    "Find the product of the numbers: 5 and 8",
+    "Provide five tips for effectively using tape measures",
+    "Do you have any other tips for starting the day off on the right foot?"
 ]
 
 for i in text:
     print(f"{Fore.GREEN}{Style.BRIGHT}Input text:", i)
-    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 70, i))
+    print(f"{Fore.CYAN}{Style.BRIGHT}Generated text:", generate(model, 500, i))
     print()

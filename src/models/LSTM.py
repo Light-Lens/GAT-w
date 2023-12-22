@@ -1,9 +1,10 @@
 from torch import nn, torch
 
 class Model(nn.Module):
-    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim, dropout=0.5):
+    def __init__(self, input_size, output_size, hidden_dim, n_layers, embedding_dim, dropout=0):
         super(Model, self).__init__()
 
+        # Defining device
         self.device = None
 
         # Defining some parameters
@@ -31,7 +32,7 @@ class Model(nn.Module):
 
         return out, hidden
 
+    # Initialize both hidden state and cell state
     def init_hidden(self, batch_size):
-        # Initialize both hidden state and cell state
         hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device))
         return hidden
