@@ -8,25 +8,25 @@ import random, numpy, torch
 init(autoreset = True)
 
 class train:
-    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len=None, batch_size=None):
+    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, dropout=0, patience=100):
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
         self.n_layers = n_layers
         self.learning_rate = lr
-        self.seq_len = seq_len
         self.batch_size = batch_size
+        self.seq_len = seq_len
 
-        self.dropout = 0
-        self.patience = 500
+        self.dropout = dropout
+        self.patience = patience
         self.model_architecture = LSTM
 
         self.savepath = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Preprocess data
-    def preprocess(self, path: str):
+    def preprocess(self, path: str, data_division=0.7):
         print(f"{Fore.YELLOW}{Style.BRIGHT}Preprocessing text..")
         with open(path, "r", encoding="utf-8") as f:
             data = [i.strip() for i in f.readlines()]
@@ -37,8 +37,21 @@ class train:
 
         random.shuffle(sentences)
 
+        # Calculate the number of lines for training
+        num_train_lines = int(len(sentences) * data_division)
+
+        # Split the lines into training and testing sets
+        train_data = sentences[:num_train_lines]
+        test_data = sentences[num_train_lines:]
+
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Data division: ({len(train_data), len(test_data)}) --> (Train Data Length, Test Data Length)")
+
+        self.preprocess_train_data(train_data)
+        self.preprocess_test_data(test_data)
+
+    def preprocess_train_data(self, train_data):
         # Join all the sentences together and extract the unique characters from the combined sentences
-        chars = set("".join(sentences))
+        chars = set("".join(train_data))
 
         # Creating a dictionary that maps integers to the characters
         self.int2char = dict(enumerate(chars))
@@ -46,38 +59,80 @@ class train:
         # Creating another dictionary that maps characters to integers
         self.char2int = {char: ind for ind, char in self.int2char.items()}
 
-        # The length of the longest string
-        maxlen = len(max(sentences, key=len))
+        # If sequence length is None then, set sequence length as the length of the longest string
+        maxlen = len(max(train_data, key=len)) if self.seq_len == None else self.seq_len
+        self.seq_len = maxlen - 1
 
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
-        for i in range(len(sentences)):
-            while len(sentences[i]) < maxlen:
-                sentences[i] += " "
+        for i in range(len(train_data)):
+            while len(train_data[i]) < maxlen:
+                train_data[i] += " "
 
         # Creating lists that will hold our input and target sequences
-        self.input_seq = []
-        self.target_seq = []
+        self.train_input_seq = []
+        self.train_target_seq = []
 
-        for i in range(len(sentences)):
+        # Automatically set batch size.
+        if self.batch_size == None:
+            self.batch_size = len(train_data)
+
+        for i in range(self.batch_size):
             # Remove last character for input sequence
-            self.input_seq.append(sentences[i][:-1])
+            self.train_input_seq.append(train_data[i][:maxlen-1])
 
             # Remove first character for target sequence
-            self.target_seq.append(sentences[i][1:])
+            self.train_target_seq.append(train_data[i][1:maxlen])
 
-        for i in range(len(sentences)):
-            self.input_seq[i] = [self.char2int[character] for character in self.input_seq[i]]
-            self.target_seq[i] = [self.char2int[character] for character in self.target_seq[i]]
+        for i in range(self.batch_size):
+            self.train_input_seq[i] = [self.char2int[character] for character in self.train_input_seq[i]]
+            self.train_target_seq[i] = [self.char2int[character] for character in self.train_target_seq[i]]
 
-        self.input_seq = torch.LongTensor(self.input_seq).to(self.device)
-        self.target_seq = torch.LongTensor(self.target_seq).to(self.device)
+        self.train_input_seq = torch.LongTensor(self.train_input_seq).to(self.device)
+        self.train_target_seq = torch.LongTensor(self.train_target_seq).to(self.device)
 
         self.dict_size = len(self.char2int)
-        if self.seq_len == None:
-            self.seq_len = maxlen - 1
 
-        if self.batch_size == None:
-            self.batch_size = len(sentences)
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Vocab size: {self.dict_size}")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Input shape: {self.train_input_seq.shape} --> (Batch Size, Sequence Length)")
+
+    def preprocess_test_data(self, test_data):
+        # Join all the sentences together and extract the unique characters from the combined sentences
+        chars = set("".join(test_data))
+
+        # Creating a dictionary that maps integers to the characters
+        int2char = dict(enumerate(chars))
+
+        # Creating another dictionary that maps characters to integers
+        char2int = {char: ind for ind, char in int2char.items()}
+
+        # The length of the longest string
+        maxlen = len(max(test_data, key=len)) if self.seq_len == None else self.seq_len
+
+        # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
+        for i in range(len(test_data)):
+            while len(test_data[i]) < maxlen:
+                test_data[i] += " "
+
+        # Creating lists that will hold our input and target sequences
+        self.test_input_seq = []
+        self.test_target_seq = []
+
+        for i in range(len(test_data)):
+            # Remove last character for input sequence
+            self.test_input_seq.append(test_data[i][:maxlen-1])
+
+            # Remove first character for target sequence
+            self.test_target_seq.append(test_data[i][1:maxlen])
+
+        for i in range(len(test_data)):
+            self.test_input_seq[i] = [char2int[character] for character in self.test_input_seq[i]]
+            self.test_target_seq[i] = [char2int[character] for character in self.test_target_seq[i]]
+
+        self.test_input_seq = torch.LongTensor(self.test_input_seq).to(self.device)
+        self.test_target_seq = torch.LongTensor(self.test_target_seq).to(self.device)
+
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Test Vocab size: {len(char2int)}")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Test Train Input shape: {self.test_input_seq.shape} --> (Batch Size, Sequence Length)")
 
     # Modify the one_hot_encode function to work with integer sequences
     def integer_encode(self, sequence, seq_len, batch_size):
@@ -89,8 +144,6 @@ class train:
         return features
 
     def train(self):
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Input shape: {self.input_seq.shape} --> (Batch Size, Sequence Length)")
-
         # Instantiate the model with hyperparameters
         model = self.model_architecture(
             input_size=self.dict_size,
@@ -103,7 +156,7 @@ class train:
         model = model.to(self.device) # Set the model to the device that we defined earlier (default is CPU)
 
         # Convert input_seq to integer-encoded sequences
-        input_seq_int = self.integer_encode(self.input_seq, self.seq_len, self.batch_size)
+        input_seq_int = self.integer_encode(self.train_input_seq, self.seq_len, self.batch_size)
         input_seq_int = torch.from_numpy(input_seq_int)
 
         # Loss and optimizer
@@ -120,18 +173,25 @@ class train:
                 input_seq_int = input_seq_int.to(self.device)
                 output, hidden = model(input_seq_int)
                 output = output.to(self.device)
-                self.target_seq = self.target_seq.to(self.device)
-                loss = criterion(output, self.target_seq.view(-1).long())
+                self.train_target_seq = self.train_target_seq.to(self.device)
+                loss = criterion(output, self.train_target_seq.view(-1).long())
                 loss.backward() # Does backpropagation and calculates gradients
                 optimizer.step() # Updates the weights accordingly
+
+                # Validation loss on the test set
+                model.eval()
+                with torch.no_grad():
+                    test_output, _ = model(self.test_input_seq)
+                    test_loss = criterion(test_output, self.test_target_seq.view(-1).long())
+                model.train()
 
                 print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
                 if epoch % (self.n_epochs/10) == 0:
                     print()
 
                 # Check for early stopping
-                if loss < best_loss:
-                    best_loss = loss
+                if test_loss < best_loss:
+                    best_loss = test_loss
 
                 else:
                     self.patience -= 1

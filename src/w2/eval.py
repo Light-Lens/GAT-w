@@ -41,10 +41,11 @@ class eval:
 
     def generate(self, seed, outlen, temperature=1.0):
         self.model.eval() # eval mode
-        seed = seed.lower()
+
         # First off, run through the starting characters
         chars = list(seed)
         size = outlen - len(chars)
+
         # Now pass in the previous characters and get a new one
         for _ in range(size):
             char, h = self.predict(chars, temperature)
