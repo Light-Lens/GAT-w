@@ -36,3 +36,18 @@ class LSTM(nn.Module):
     def init_hidden(self, batch_size):
         hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device), torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device))
         return hidden
+
+class Transformer(nn.Module):
+    def __init__(self, input_size, output_size, hidden_dim, n_head, n_layers, dropout):
+        super(Transformer, self).__init__()
+
+        # Defining the layers
+        self.embedding = nn.Embedding(input_size, hidden_dim)
+        self.transformer = nn.Transformer( d_model=hidden_dim, nhead=n_head, num_encoder_layers=n_layers, num_decoder_layers=n_layers, dropout=dropout) # Transformer layer
+        self.fc = nn.Linear(hidden_dim, output_size) # Fully connected layer
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        transformer_out = self.transformer(embedded, embedded)
+        output = self.fc(transformer_out[-1, :, :])  # Use the last time step's output
+        return output

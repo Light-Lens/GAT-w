@@ -64,8 +64,10 @@ class train:
 
         # If sequence length is None then, set sequence length as the length of the longest string
         longest_str_len = len(max(train_data, key=len))
-        maxlen = longest_str_len if self.seq_len == None else self.seq_len
-        self.seq_len = maxlen - 1
+        if self.seq_len == None:
+            maxlen = longest_str_len
+            self.seq_len = maxlen - 1
+
         print(f"{Fore.YELLOW}{Style.BRIGHT}Longest Train String Length: {longest_str_len}")
 
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
@@ -110,7 +112,7 @@ class train:
         char2int = {char: ind for ind, char in int2char.items()}
 
         # The length of the longest string
-        maxlen = len(max(test_data, key=len)) if self.seq_len == None else self.seq_len
+        maxlen = self.seq_len
 
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
         for i in range(len(test_data)):
@@ -121,14 +123,14 @@ class train:
         self.test_input_seq = []
         self.test_target_seq = []
 
-        for i in range(len(test_data)):
+        for i in range(self.batch_size):
             # Remove last character for input sequence
             self.test_input_seq.append(test_data[i][:maxlen-1])
 
             # Remove first character for target sequence
             self.test_target_seq.append(test_data[i][1:maxlen])
 
-        for i in range(len(test_data)):
+        for i in range(self.batch_size):
             self.test_input_seq[i] = [char2int[character] for character in self.test_input_seq[i]]
             self.test_target_seq[i] = [char2int[character] for character in self.test_target_seq[i]]
 
