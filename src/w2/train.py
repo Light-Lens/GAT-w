@@ -44,10 +44,13 @@ class train:
         train_data = sentences[:num_train_lines]
         test_data = sentences[num_train_lines:]
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Data division: ({len(train_data), len(test_data)}) --> (Train Data Length, Test Data Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Data division: {len(train_data), len(test_data)} --> (Train Data Length, Test Data Length)")
 
         self.preprocess_train_data(train_data)
         self.preprocess_test_data(test_data)
+
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Input shape: {self.train_input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Test Input shape: {self.test_input_seq.shape} --> (Batch Size, Sequence Length)")
 
     def preprocess_train_data(self, train_data):
         # Join all the sentences together and extract the unique characters from the combined sentences
@@ -60,8 +63,10 @@ class train:
         self.char2int = {char: ind for ind, char in self.int2char.items()}
 
         # If sequence length is None then, set sequence length as the length of the longest string
-        maxlen = len(max(train_data, key=len)) if self.seq_len == None else self.seq_len
+        longest_str_len = len(max(train_data, key=len))
+        maxlen = longest_str_len if self.seq_len == None else self.seq_len
         self.seq_len = maxlen - 1
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Longest Train String Length: {longest_str_len}")
 
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
         for i in range(len(train_data)):
@@ -92,8 +97,7 @@ class train:
 
         self.dict_size = len(self.char2int)
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Vocab size: {self.dict_size}")
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Input shape: {self.train_input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: ({self.dict_size}, ", end="")
 
     def preprocess_test_data(self, test_data):
         # Join all the sentences together and extract the unique characters from the combined sentences
@@ -131,8 +135,7 @@ class train:
         self.test_input_seq = torch.LongTensor(self.test_input_seq).to(self.device)
         self.test_target_seq = torch.LongTensor(self.test_target_seq).to(self.device)
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Test Vocab size: {len(char2int)}")
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Test Train Input shape: {self.test_input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}{len(char2int)}) -> (Train Vocab Size, Test Vocab Size)")
 
     # Modify the one_hot_encode function to work with integer sequences
     def integer_encode(self, sequence, seq_len, batch_size):

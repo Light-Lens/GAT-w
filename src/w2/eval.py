@@ -43,7 +43,7 @@ class eval:
         self.model.eval() # eval mode
 
         # First off, run through the starting characters
-        chars = list(seed)
+        chars = list(seed.lower())
         size = outlen - len(chars)
 
         # Now pass in the previous characters and get a new one
