@@ -123,14 +123,14 @@ class train:
         self.test_input_seq = []
         self.test_target_seq = []
 
-        for i in range(self.batch_size):
+        for i in range(len(test_data)):
             # Remove last character for input sequence
             self.test_input_seq.append(test_data[i][:maxlen-1])
 
             # Remove first character for target sequence
             self.test_target_seq.append(test_data[i][1:maxlen])
 
-        for i in range(self.batch_size):
+        for i in range(len(test_data)):
             self.test_input_seq[i] = [char2int[character] for character in self.test_input_seq[i]]
             self.test_target_seq[i] = [char2int[character] for character in self.test_target_seq[i]]
 
