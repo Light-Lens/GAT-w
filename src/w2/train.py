@@ -8,7 +8,7 @@ import random, numpy, torch
 init(autoreset = True)
 
 class train:
-    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, dropout=0, patience=100):
+    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, clip_value=1, dropout=0, patience=100):
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.hidden_dim = hidden_dim
@@ -18,6 +18,7 @@ class train:
         self.batch_size = batch_size
         self.seq_len = seq_len
 
+        self.clip_value = clip_value
         self.dropout = dropout
         self.patience = patience
         self.model_architecture = LSTM
@@ -29,13 +30,28 @@ class train:
     def preprocess(self, path: str, data_division=0.7):
         print(f"{Fore.YELLOW}{Style.BRIGHT}Preprocessing text..")
         with open(path, "r", encoding="utf-8") as f:
-            data = [i.strip() for i in f.readlines()]
+            sentences = [i.strip() for i in f.readlines()]
 
-        sentences = []
-        for text in data:
-            sentences.extend(sent_tokenize(text))
+        # random.shuffle(sentences)
+        # If sequence length is None then, set sequence length as the length of the longest string
+        if self.seq_len == None:
+            maxlen = len(max(sentences, key=len))
+            self.seq_len = maxlen - 1
 
-        random.shuffle(sentences)
+        else:
+            maxlen = self.seq_len
+            temp_sentences = []
+            for i in sentences:
+                for j in range(0, len(i), self.seq_len):
+                    temp_sentences.append(i[j:j+self.seq_len])
+
+            sentences = temp_sentences
+
+        # https://statisticsglobe.com/add-string-each-element-list-python#:~:text=In%20this%20example%2C%20we%20will,the%20elements%20in%20a%20list.&text=As%20you%20can%20see%20in,of%20fruit%3A%20with%20the%20element.
+        # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
+        # The lambda function takes an element as input and returns the concatenation of " " with the element.
+        # The map function returns a map object that is converted to a list using the list() function.
+        sentences = list(map(lambda x: x + " "*(maxlen - len(x)), sentences))
 
         # Calculate the number of lines for training
         num_train_lines = int(len(sentences) * data_division)
@@ -62,18 +78,27 @@ class train:
         # Creating another dictionary that maps characters to integers
         self.char2int = {char: ind for ind, char in self.int2char.items()}
 
-        # If sequence length is None then, set sequence length as the length of the longest string
-        longest_str_len = len(max(train_data, key=len))
-        if self.seq_len == None:
-            maxlen = longest_str_len
-            self.seq_len = maxlen - 1
+        # # If sequence length is None then, set sequence length as the length of the longest string
+        # if self.seq_len == None:
+        #     maxlen = len(max(train_data, key=len))
+        #     self.seq_len = maxlen - 1
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Longest Train String Length: {longest_str_len}")
+        # else:
+        #     maxlen = self.seq_len
+        #     temp_train_data = []
+        #     for i in train_data:
+        #         for j in range(0, len(i), self.seq_len):
+        #             temp_train_data.append(i[j:j+self.seq_len])
 
-        # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
-        for i in range(len(train_data)):
-            while len(train_data[i]) < maxlen:
-                train_data[i] += " "
+        #     train_data = temp_train_data
+
+        maxlen = len(max(train_data, key=len))
+
+        # # https://statisticsglobe.com/add-string-each-element-list-python#:~:text=In%20this%20example%2C%20we%20will,the%20elements%20in%20a%20list.&text=As%20you%20can%20see%20in,of%20fruit%3A%20with%20the%20element.
+        # # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
+        # # The lambda function takes an element as input and returns the concatenation of " " with the element.
+        # # The map function returns a map object that is converted to a list using the list() function.
+        # train_data = list(map(lambda x: x + " "*(maxlen - len(x)), train_data))
 
         # Creating lists that will hold our input and target sequences
         self.train_input_seq = []
@@ -99,8 +124,6 @@ class train:
 
         self.dict_size = len(self.char2int)
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: ({self.dict_size}, ", end="")
-
     def preprocess_test_data(self, test_data):
         # Join all the sentences together and extract the unique characters from the combined sentences
         chars = set("".join(test_data))
@@ -111,33 +134,25 @@ class train:
         # Creating another dictionary that maps characters to integers
         char2int = {char: ind for ind, char in int2char.items()}
 
-        # The length of the longest string
-        maxlen = self.seq_len
-
-        # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
-        for i in range(len(test_data)):
-            while len(test_data[i]) < maxlen:
-                test_data[i] += " "
-
         # Creating lists that will hold our input and target sequences
         self.test_input_seq = []
         self.test_target_seq = []
 
-        for i in range(len(test_data)):
+        for i in range(self.batch_size):
             # Remove last character for input sequence
-            self.test_input_seq.append(test_data[i][:maxlen-1])
+            self.test_input_seq.append(test_data[i][:self.seq_len-1])
 
             # Remove first character for target sequence
-            self.test_target_seq.append(test_data[i][1:maxlen])
+            self.test_target_seq.append(test_data[i][1:self.seq_len])
 
-        for i in range(len(test_data)):
+        for i in range(self.batch_size):
             self.test_input_seq[i] = [char2int[character] for character in self.test_input_seq[i]]
             self.test_target_seq[i] = [char2int[character] for character in self.test_target_seq[i]]
 
         self.test_input_seq = torch.LongTensor(self.test_input_seq).to(self.device)
         self.test_target_seq = torch.LongTensor(self.test_target_seq).to(self.device)
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}{len(char2int)}) -> (Train Vocab Size, Test Vocab Size)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: {self.dict_size, len(char2int)} -> (Train Vocab Size, Test Vocab Size)")
 
     # Modify the one_hot_encode function to work with integer sequences
     def integer_encode(self, sequence, seq_len, batch_size):
@@ -181,16 +196,21 @@ class train:
                 self.train_target_seq = self.train_target_seq.to(self.device)
                 loss = criterion(output, self.train_target_seq.view(-1).long())
                 loss.backward() # Does backpropagation and calculates gradients
+                nn.utils.clip_grad_norm_(model.parameters(), self.clip_value) # Gradient clipping
                 optimizer.step() # Updates the weights accordingly
 
                 # Validation loss on the test set
-                model.eval()
-                with torch.no_grad():
-                    test_output, _ = model(self.test_input_seq)
-                    test_loss = criterion(test_output, self.test_target_seq.view(-1).long())
-                model.train()
+                if self.test_input_seq.shape != torch.Size([0]):
+                    model.eval()
+                    with torch.no_grad():
+                        test_output, _ = model(self.test_input_seq)
+                        test_loss = criterion(test_output, self.test_target_seq.view(-1).long())
+                    model.train()
 
-                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Loss: {loss.item():.4f}", end="\r")
+                else:
+                    test_loss = loss
+
+                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Train Loss: {loss.item():.4f}, Val loss: {test_loss.item():.4f}", end="\r")
                 if epoch % (self.n_epochs/10) == 0:
                     print()
 
