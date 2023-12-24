@@ -7,17 +7,19 @@ import random, numpy, torch
 # Initialize colorama
 init(autoreset = True)
 
-class train:
-    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, dropout=0, patience=100):
+class Train:
+    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len, batch_size=None, clip_value=1, dropout=0, patience=100):
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
         self.n_layers = n_layers
         self.learning_rate = lr
+
         self.batch_size = batch_size
         self.seq_len = seq_len
 
+        self.clip = clip_value
         self.dropout = dropout
         self.patience = patience
         self.model_architecture = LSTM
@@ -25,24 +27,29 @@ class train:
         self.savepath = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Preprocess data
-    def preprocess(self, path: str, data_division=0.7):
+    def preprocess(self, path, data_division=0.7):
         print(f"{Fore.YELLOW}{Style.BRIGHT}Preprocessing text..")
         with open(path, "r", encoding="utf-8") as f:
-            sentences = [i.strip() for i in f.readlines()]
+            text = f.read()
 
-        # random.shuffle(sentences)
-        # If sequence length is None then set sequence length as the length of the longest string
-        if self.seq_len == None:
-            self.seq_len = len(max(sentences, key=len)) - 1
+        # Encode the text and map each character to an integer and vice versa
+        # We create two dictonaries:
+        # 1. int2char, which maps integers to characters
+        # 2. char2int, which maps characters to unique integers
 
-        else:
-            temp_sentences = []
-            for i in sentences:
-                for j in range(0, len(i), self.seq_len):
-                    temp_sentences.append(i[j:j+self.seq_len])
+        # Join all the sentences together and extract the unique characters from the combined sentences
+        self.chars = set(text)
 
-            sentences = temp_sentences
+        # Creating a dictionary that maps integers to the characters
+        self.int2char = dict(enumerate(self.chars))
+
+        # Creating another dictionary that maps characters to integers
+        self.char2int = {char: ind for ind, char in self.int2char.items()}
+
+        sentences = []
+        for i in sentences:
+            for j in range(0, len(i), self.seq_len):
+                sentences.append(i[j:j+self.seq_len])
 
         # https://statisticsglobe.com/add-string-each-element-list-python#:~:text=In%20this%20example%2C%20we%20will,the%20elements%20in%20a%20list.&text=As%20you%20can%20see%20in,of%20fruit%3A%20with%20the%20element.
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
@@ -57,32 +64,20 @@ class train:
         train_data = sentences[:num_train_lines]
         test_data = sentences[num_train_lines:]
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Data division: {len(train_data), len(test_data)} --> (Train Data Length, Test Data Length)")
+        # Automatically set batch size.
+        if self.batch_size == None:
+            self.batch_size = len(train_data)
 
-        self.int2char, self.char2int, self.train_input_seq, self.train_target_seq, self.dict_size = self.preprocess_data(train_data)
-        _, _, self.test_input_seq, self.test_target_seq, _ = self.preprocess_data(test_data)
+        self.train_input_seq, self.train_target_seq = self.create_input_target_sequence(train_data)
+        self.test_input_seq, self.test_target_seq = self.create_input_target_sequence(test_data)
 
         print(f"{Fore.YELLOW}{Style.BRIGHT}Train Input shape: {self.train_input_seq.shape} --> (Batch Size, Sequence Length)")
         print(f"{Fore.YELLOW}{Style.BRIGHT}Test Input shape: {self.test_input_seq.shape} --> (Batch Size, Sequence Length)")
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: {self.dict_size, len(self.char2int)} -> (Train Vocab Size, Test Vocab Size)")
 
-    def preprocess_data(self, data):
-        # Join all the sentences together and extract the unique characters from the combined sentences
-        chars = set("".join(data))
-
-        # Creating a dictionary that maps integers to the characters
-        int2char = dict(enumerate(chars))
-
-        # Creating another dictionary that maps characters to integers
-        char2int = {char: ind for ind, char in int2char.items()}
-
+    def create_input_target_sequence(self, data):
         # Creating lists that will hold our input and target sequences
         input_seq = []
         target_seq = []
-
-        # Automatically set batch size.
-        if self.batch_size == None:
-            self.batch_size = len(data)
 
         for i in range(self.batch_size):
             # Remove last character for input sequence
@@ -92,101 +87,70 @@ class train:
             target_seq.append(data[i][1:self.seq_len])
 
         for i in range(self.batch_size):
-            input_seq[i] = [char2int[character] for character in input_seq[i]]
-            target_seq[i] = [char2int[character] for character in target_seq[i]]
+            input_seq[i] = [self.char2int[character] for character in input_seq[i]]
+            target_seq[i] = [self.char2int[character] for character in target_seq[i]]
 
         input_seq = torch.LongTensor(input_seq).to(self.device)
         target_seq = torch.LongTensor(target_seq).to(self.device)
 
-        dict_size = len(char2int)
+        return input_seq, target_seq
 
-        return int2char, char2int, input_seq, target_seq, dict_size
+    def one_hot_encode(self, sequence, vocab_size):
+        # Creating a multi-dimensional array of zeros with the desired output shape
+        features = numpy.zeros((self.batch_size, self.seq_len, vocab_size), dtype=numpy.float32)
+        
+        # Replacing the 0 at the relevant character index with a 1 to represent that character
+        for i in range(self.batch_size):
+            for u in range(self.seq_len):
+                features[i, u, sequence[i, u]] = 1
 
+        return features
+    
     def train(self):
+        vocab_size = len(self.char2int)
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Train Vocab Size: {vocab_size}")
+
         # Instantiate the model with hyperparameters
         model = self.model_architecture(
-            input_size=self.dict_size,
-            output_size=self.dict_size,
-            hidden_dim=self.hidden_dim,
-            n_layers=self.n_layers,
-            embedding_dim=self.embedding_dim,
-            dropout=self.dropout
+            tokens = self.chars,
+            output_size = vocab_size,
+            hidden_dim = self.hidden_dim,
+            n_layers = self.n_layers,
+            embedding_dim = self.embedding_dim,
+            dropout = self.dropout
         )
         model = model.to(self.device) # Set the model to the device that we defined earlier (default is CPU)
 
-        # Convert input_seq to integer-encoded sequences
-        #! BUG BUG BUG FUCK THIS PIECE OF SHIT.
-        features = numpy.zeros((self.batch_size, self.seq_len), dtype=numpy.int64)
-        for i in range(self.batch_size):
-            for u in range(self.seq_len):
-                features[i, u] = self.train_input_seq[i][u]
+        self.train_input_seq = self.one_hot_encode(self.train_input_seq, vocab_size)
+        self.train_input_seq = torch.from_numpy(self.train_input_seq)
+        self.train_input_seq = self.train_input_seq.to(self.device)
 
-        train_input_seq_int = features
-        train_input_seq_int = torch.from_numpy(train_input_seq_int)
+        self.train_target_seq = torch.Tensor(self.train_target_seq)
+        self.train_target_seq = self.train_target_seq.to(self.device)
+
+        # https://stackoverflow.com/a/49201237/18121288
+        total_params = sum(p.numel() for p in model.parameters())
+        total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Paramaters: {total_params, total_trainable_params} -> (Total Parameters, Total Trainable Parameters)")
 
         # Loss and optimizer
+        model.train()
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
-
-        # Add early stopping
-        best_loss = float('inf')
 
         # Train the model
         for epoch in range(1, self.n_epochs + 1):
             try:
                 optimizer.zero_grad() # Clears existing gradients from previous epoch
-                train_input_seq_int = train_input_seq_int.to(self.device)
-                output, hidden = model(train_input_seq_int)
+                output, hidden = model.forward(self.train_input_seq)
                 output = output.to(self.device)
-                self.train_target_seq = self.train_target_seq.to(self.device)
+
                 loss = criterion(output, self.train_target_seq.view(-1).long())
                 loss.backward() # Does backpropagation and calculates gradients
+
                 optimizer.step() # Updates the weights accordingly
-
-                # Validation loss on the test set
-                if self.test_input_seq.shape != torch.Size([0]):
-                    model.eval()
-                    with torch.no_grad():
-                        test_output, _ = model(self.test_input_seq)
-                        test_loss = criterion(test_output, self.test_target_seq.view(-1).long())
-                    model.train()
-
-                else:
-                    test_loss = loss
-
-                print(f"{Fore.WHITE}{Style.BRIGHT}Epoch [{epoch}/{self.n_epochs}], Train Loss: {loss.item():.4f}, Val loss: {test_loss.item():.4f}", end="\r")
-                if epoch % (self.n_epochs/10) == 0:
-                    print()
-
-                # Check for early stopping
-                if test_loss < best_loss:
-                    best_loss = test_loss
-
-                else:
-                    self.patience -= 1
-                    if self.patience == 0:
-                        print(f"\n{Fore.RED}{Style.BRIGHT}Early stopping:", "No improvement in validation loss.\n")
-                        break
 
             except KeyboardInterrupt:
                 print()
                 break
-
-        # Define save data dict
-        model_data = {
-            "model_state": model.state_dict(),
-            "input_size": self.dict_size,
-            "hidden_dim": self.hidden_dim,
-            "embedding_dim": self.embedding_dim,
-            "n_layers": self.n_layers,
-            "dropout": self.dropout,
-            "device": self.device,
-            "int2char": self.int2char,
-            "char2int": self.char2int,
-            "model_architecture": self.model_architecture
-        }
-
-        if self.savepath != None:
-            torch.save(model_data, self.savepath)
-
-        return model_data
