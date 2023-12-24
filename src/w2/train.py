@@ -35,11 +35,9 @@ class train:
         # random.shuffle(sentences)
         # If sequence length is None then, set sequence length as the length of the longest string
         if self.seq_len == None:
-            maxlen = len(max(sentences, key=len))
-            self.seq_len = maxlen - 1
+            self.seq_len = len(max(sentences, key=len)) - 1
 
         else:
-            maxlen = self.seq_len
             temp_sentences = []
             for i in sentences:
                 for j in range(0, len(i), self.seq_len):
@@ -51,7 +49,7 @@ class train:
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
         # The lambda function takes an element as input and returns the concatenation of " " with the element.
         # The map function returns a map object that is converted to a list using the list() function.
-        sentences = list(map(lambda x: x + " " * (maxlen - len(x)), sentences))
+        sentences = list(map(lambda x: x + " " * (self.seq_len - len(x)), sentences))
 
         # Calculate the number of lines for training
         num_train_lines = int(len(sentences) * data_division)
@@ -105,15 +103,6 @@ class train:
 
         return int2char, char2int, input_seq, target_seq, dict_size
 
-    # Modify the one_hot_encode function to work with integer sequences
-    def integer_encode(self, sequence, seq_len, batch_size):
-        features = numpy.zeros((batch_size, seq_len), dtype=numpy.int64)
-        for i in range(batch_size):
-            for u in range(seq_len):
-                features[i, u] = sequence[i][u]
-
-        return features
-
     def train(self):
         # Instantiate the model with hyperparameters
         model = self.model_architecture(
@@ -127,8 +116,14 @@ class train:
         model = model.to(self.device) # Set the model to the device that we defined earlier (default is CPU)
 
         # Convert input_seq to integer-encoded sequences
-        input_seq_int = self.integer_encode(self.train_input_seq, self.seq_len, self.batch_size)
-        input_seq_int = torch.from_numpy(input_seq_int)
+        #! BUG BUG BUG FUCK THIS PIECE OF SHIT.
+        features = numpy.zeros((self.batch_size, self.seq_len), dtype=numpy.int64)
+        for i in range(self.batch_size):
+            for u in range(self.seq_len):
+                features[i, u] = self.train_input_seq[i][u]
+
+        train_input_seq_int = features
+        train_input_seq_int = torch.from_numpy(train_input_seq_int)
 
         # Loss and optimizer
         criterion = nn.CrossEntropyLoss()
@@ -141,8 +136,8 @@ class train:
         for epoch in range(1, self.n_epochs + 1):
             try:
                 optimizer.zero_grad() # Clears existing gradients from previous epoch
-                input_seq_int = input_seq_int.to(self.device)
-                output, hidden = model(input_seq_int)
+                train_input_seq_int = train_input_seq_int.to(self.device)
+                output, hidden = model(train_input_seq_int)
                 output = output.to(self.device)
                 self.train_target_seq = self.train_target_seq.to(self.device)
                 loss = criterion(output, self.train_target_seq.view(-1).long())
