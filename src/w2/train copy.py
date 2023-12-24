@@ -1,8 +1,7 @@
 from colorama import Fore, Style, init
-from src.utils import sent_tokenize
 from src.models import LSTM
 from torch import nn
-import random, numpy, torch
+import numpy, torch
 
 # Initialize colorama
 init(autoreset = True)
