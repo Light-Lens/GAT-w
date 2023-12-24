@@ -8,7 +8,7 @@ import random, numpy, torch
 init(autoreset = True)
 
 class train:
-    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, clip_value=1, dropout=0, patience=100):
+    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, dropout=0, patience=100):
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.hidden_dim = hidden_dim
@@ -18,7 +18,6 @@ class train:
         self.batch_size = batch_size
         self.seq_len = seq_len
 
-        self.clip_value = clip_value
         self.dropout = dropout
         self.patience = patience
         self.model_architecture = LSTM
@@ -33,7 +32,7 @@ class train:
             sentences = [i.strip() for i in f.readlines()]
 
         # random.shuffle(sentences)
-        # If sequence length is None then, set sequence length as the length of the longest string
+        # If sequence length is None then set sequence length as the length of the longest string
         if self.seq_len == None:
             self.seq_len = len(max(sentences, key=len)) - 1
 
@@ -142,7 +141,6 @@ class train:
                 self.train_target_seq = self.train_target_seq.to(self.device)
                 loss = criterion(output, self.train_target_seq.view(-1).long())
                 loss.backward() # Does backpropagation and calculates gradients
-                nn.utils.clip_grad_norm_(model.parameters(), self.clip_value) # Gradient clipping
                 optimizer.step() # Updates the weights accordingly
 
                 # Validation loss on the test set
