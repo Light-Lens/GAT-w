@@ -7,7 +7,7 @@ import numpy, torch
 init(autoreset = True)
 
 class Trainer:
-    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, seq_len, batch_size=None, clip_value=1, dropout=0, patience=100):
+    def __init__(self, n_epochs, hidden_dim, embedding_dim, n_layers, lr, batch_size=None, seq_len=None, clip_value=1, dropout=0, patience=100):
         # Define hyperparameters
         self.n_epochs = n_epochs
         self.hidden_dim = hidden_dim
@@ -44,6 +44,9 @@ class Trainer:
 
         # Creating another dictionary that maps characters to integers
         self.char2int = {char: ind for ind, char in self.int2char.items()}
+
+        if self.seq_len == None:
+            self.seq_len = len(max(text, key=len)) - 1
 
         sentences = []
         for i in text:
@@ -96,11 +99,11 @@ class Trainer:
 
     def one_hot_encode(self, sequence, vocab_size):
         # Creating a multi-dimensional array of zeros with the desired output shape
-        features = numpy.zeros((self.batch_size, self.seq_len, vocab_size), dtype=numpy.float32)
-        
+        features = numpy.zeros((self.batch_size, self.seq_len - 1, vocab_size), dtype=numpy.float32)
+
         # Replacing the 0 at the relevant character index with a 1 to represent that character
         for i in range(self.batch_size):
-            for u in range(self.seq_len):
+            for u in range(self.seq_len - 1):
                 features[i, u, sequence[i, u]] = 1
 
         return torch.LongTensor(features).to(self.device)
@@ -121,9 +124,6 @@ class Trainer:
         model = model.to(self.device) # Set the model to the device that we defined earlier (default is CPU)
 
         self.train_input_seq = self.one_hot_encode(self.train_input_seq, vocab_size)
-        # self.train_input_seq = torch.from_numpy(self.train_input_seq)
-        # self.train_input_seq = self.train_input_seq.to(self.device)
-
         self.train_target_seq = torch.Tensor(self.train_target_seq).to(self.device)
 
         # https://stackoverflow.com/a/49201237/18121288
@@ -144,6 +144,7 @@ class Trainer:
         for epoch in range(1, self.n_epochs + 1):
             try:
                 optimizer.zero_grad() # Clears existing gradients from previous epoch
+
                 output, hidden = model.forward(self.train_input_seq)
                 output = output.to(self.device)
 
