@@ -51,7 +51,7 @@ class train:
         # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
         # The lambda function takes an element as input and returns the concatenation of " " with the element.
         # The map function returns a map object that is converted to a list using the list() function.
-        sentences = list(map(lambda x: x + " "*(maxlen - len(x)), sentences))
+        sentences = list(map(lambda x: x + " " * (maxlen - len(x)), sentences))
 
         # Calculate the number of lines for training
         num_train_lines = int(len(sentences) * data_division)
@@ -62,71 +62,16 @@ class train:
 
         print(f"{Fore.YELLOW}{Style.BRIGHT}Data division: {len(train_data), len(test_data)} --> (Train Data Length, Test Data Length)")
 
-        self.preprocess_train_data(train_data)
-        self.preprocess_test_data(test_data)
+        self.int2char, self.char2int, self.train_input_seq, self.train_target_seq, self.dict_size = self.preprocess_data(train_data)
+        _, _, self.test_input_seq, self.test_target_seq, _ = self.preprocess_data(test_data)
 
         print(f"{Fore.YELLOW}{Style.BRIGHT}Train Input shape: {self.train_input_seq.shape} --> (Batch Size, Sequence Length)")
         print(f"{Fore.YELLOW}{Style.BRIGHT}Test Input shape: {self.test_input_seq.shape} --> (Batch Size, Sequence Length)")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: {self.dict_size, len(self.char2int)} -> (Train Vocab Size, Test Vocab Size)")
 
-    def preprocess_train_data(self, train_data):
+    def preprocess_data(self, data):
         # Join all the sentences together and extract the unique characters from the combined sentences
-        chars = set("".join(train_data))
-
-        # Creating a dictionary that maps integers to the characters
-        self.int2char = dict(enumerate(chars))
-
-        # Creating another dictionary that maps characters to integers
-        self.char2int = {char: ind for ind, char in self.int2char.items()}
-
-        # # If sequence length is None then, set sequence length as the length of the longest string
-        # if self.seq_len == None:
-        #     maxlen = len(max(train_data, key=len))
-        #     self.seq_len = maxlen - 1
-
-        # else:
-        #     maxlen = self.seq_len
-        #     temp_train_data = []
-        #     for i in train_data:
-        #         for j in range(0, len(i), self.seq_len):
-        #             temp_train_data.append(i[j:j+self.seq_len])
-
-        #     train_data = temp_train_data
-
-        maxlen = len(max(train_data, key=len))
-
-        # # https://statisticsglobe.com/add-string-each-element-list-python#:~:text=In%20this%20example%2C%20we%20will,the%20elements%20in%20a%20list.&text=As%20you%20can%20see%20in,of%20fruit%3A%20with%20the%20element.
-        # # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches the length of the longest sentence
-        # # The lambda function takes an element as input and returns the concatenation of " " with the element.
-        # # The map function returns a map object that is converted to a list using the list() function.
-        # train_data = list(map(lambda x: x + " "*(maxlen - len(x)), train_data))
-
-        # Creating lists that will hold our input and target sequences
-        self.train_input_seq = []
-        self.train_target_seq = []
-
-        # Automatically set batch size.
-        if self.batch_size == None:
-            self.batch_size = len(train_data)
-
-        for i in range(self.batch_size):
-            # Remove last character for input sequence
-            self.train_input_seq.append(train_data[i][:maxlen-1])
-
-            # Remove first character for target sequence
-            self.train_target_seq.append(train_data[i][1:maxlen])
-
-        for i in range(self.batch_size):
-            self.train_input_seq[i] = [self.char2int[character] for character in self.train_input_seq[i]]
-            self.train_target_seq[i] = [self.char2int[character] for character in self.train_target_seq[i]]
-
-        self.train_input_seq = torch.LongTensor(self.train_input_seq).to(self.device)
-        self.train_target_seq = torch.LongTensor(self.train_target_seq).to(self.device)
-
-        self.dict_size = len(self.char2int)
-
-    def preprocess_test_data(self, test_data):
-        # Join all the sentences together and extract the unique characters from the combined sentences
-        chars = set("".join(test_data))
+        chars = set("".join(data))
 
         # Creating a dictionary that maps integers to the characters
         int2char = dict(enumerate(chars))
@@ -135,24 +80,30 @@ class train:
         char2int = {char: ind for ind, char in int2char.items()}
 
         # Creating lists that will hold our input and target sequences
-        self.test_input_seq = []
-        self.test_target_seq = []
+        input_seq = []
+        target_seq = []
+
+        # Automatically set batch size.
+        if self.batch_size == None:
+            self.batch_size = len(data)
 
         for i in range(self.batch_size):
             # Remove last character for input sequence
-            self.test_input_seq.append(test_data[i][:self.seq_len-1])
+            input_seq.append(data[i][:self.seq_len-1])
 
             # Remove first character for target sequence
-            self.test_target_seq.append(test_data[i][1:self.seq_len])
+            target_seq.append(data[i][1:self.seq_len])
 
         for i in range(self.batch_size):
-            self.test_input_seq[i] = [char2int[character] for character in self.test_input_seq[i]]
-            self.test_target_seq[i] = [char2int[character] for character in self.test_target_seq[i]]
+            input_seq[i] = [char2int[character] for character in input_seq[i]]
+            target_seq[i] = [char2int[character] for character in target_seq[i]]
 
-        self.test_input_seq = torch.LongTensor(self.test_input_seq).to(self.device)
-        self.test_target_seq = torch.LongTensor(self.test_target_seq).to(self.device)
+        input_seq = torch.LongTensor(input_seq).to(self.device)
+        target_seq = torch.LongTensor(target_seq).to(self.device)
 
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Vocab size: {self.dict_size, len(char2int)} -> (Train Vocab Size, Test Vocab Size)")
+        dict_size = len(char2int)
+
+        return int2char, char2int, input_seq, target_seq, dict_size
 
     # Modify the one_hot_encode function to work with integer sequences
     def integer_encode(self, sequence, seq_len, batch_size):
