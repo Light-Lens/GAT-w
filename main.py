@@ -4,20 +4,20 @@ from torch.nn import functional as F
 
 # hyperparameters
 batch_size = 32 # how many independent sequences will we process in parallel?
-block_size = 128 # what is the maximum context length for predictions?
-max_iters = 10000
+block_size = 50 # what is the maximum context length for predictions?
+max_iters = 5000
 eval_interval = 100
-learning_rate = 1e-3
+learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
-n_embd = 256
-n_head = 4
-n_layer = 4
+n_embd = 8
+n_head = 2
+n_layer = 2
 dropout = 0
 # ------------
 
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-with open('data\\data.txt', 'r', encoding='utf-8') as f:
+with open('data\\input.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
 # here are all the unique characters that occur in this text
@@ -204,9 +204,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 for iter in range(max_iters):
     if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
         losses = estimate_loss()
-        print()
-
-    print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}", end="\r")
+        print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
     # sample a batch of data
     xb, yb = get_batch('train')
@@ -218,8 +216,8 @@ for iter in range(max_iters):
     optimizer.step()
 
 # generate from the model
-context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
-
-# context = torch.tensor(encode("search on google what works a search engine"), dtype=torch.long, device=device).unsqueeze(0)
+# context = torch.zeros((1, 1), dtype=torch.long, device=device)
 # print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+
+context = torch.tensor(encode("search for what is a search engine"), dtype=torch.long, device=device).unsqueeze(0)
+print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
