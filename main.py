@@ -4,20 +4,20 @@ from torch.nn import functional as F
 
 # hyperparameters
 batch_size = 32 # how many independent sequences will we process in parallel?
-block_size = 50 # what is the maximum context length for predictions?
-max_iters = 5000
-eval_interval = 100
+block_size = 100 # what is the maximum context length for predictions?
+max_iters = 4000
+eval_interval = 400
 learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
-n_embd = 8
-n_head = 2
-n_layer = 2
+n_embd = 16
+n_head = 3
+n_layer = 3
 dropout = 0
 # ------------
 
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-with open('data\\data2.txt', 'r', encoding='utf-8') as f:
+with open('data\\data.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
 # here are all the unique characters that occur in this text
@@ -216,8 +216,14 @@ for iter in range(max_iters):
     optimizer.step()
 
 # generate from the model
-# context = torch.zeros((1, 1), dtype=torch.long, device=device)
-# print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+context = torch.zeros((1, 1), dtype=torch.long, device=device)
+print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
 
-context = torch.tensor(encode("search for what is a search engine"), dtype=torch.long, device=device).unsqueeze(0)
-print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
+context = torch.tensor(encode("Hello"), dtype=torch.long, device=device).unsqueeze(0)
+print(decode(m.generate(context, max_new_tokens=50)[0].tolist()))
+
+context = torch.tensor(encode("Hello"), dtype=torch.long, device=device).unsqueeze(0)
+print(decode(m.generate(context, max_new_tokens=50)[0].tolist()))
+
+context = torch.tensor(encode("How hard working is Rockstar Games"), dtype=torch.long, device=device).unsqueeze(0)
+print(decode(m.generate(context, max_new_tokens=1000)[0].tolist()))
