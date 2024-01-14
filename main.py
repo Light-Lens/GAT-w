@@ -1,15 +1,15 @@
-import torch
-import torch.nn as nn
 from torch.nn import functional as F
+import torch.nn as nn
+import torch, time
 
 # hyperparameters
-batch_size = 32 # how many independent sequences will we process in parallel?
+batch_size = 64 # how many independent sequences will we process in parallel?
 block_size = 50 # what is the maximum context length for predictions?
-max_iters = 100000
+max_iters = 10000
 eval_interval = 200
 learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 2000
+eval_iters = 1000
 n_embd = 16
 n_head = 8
 n_layer = 8
@@ -195,6 +195,9 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+# start timer
+start_time = time.perf_counter()
+
 for iter in range(max_iters):
     try:
         if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
@@ -212,6 +215,8 @@ for iter in range(max_iters):
 
     except KeyboardInterrupt:
         break
+
+print(f"Time taken: {(time.perf_counter() - start_time):.0f} sec")
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
