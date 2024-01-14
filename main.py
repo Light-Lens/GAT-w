@@ -4,19 +4,18 @@ from torch.nn import functional as F
 
 # hyperparameters
 batch_size = 32 # how many independent sequences will we process in parallel?
-block_size = 100 # what is the maximum context length for predictions?
-max_iters = 4000
-eval_interval = 400
+block_size = 50 # what is the maximum context length for predictions?
+max_iters = 100000
+eval_interval = 200
 learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 200
+eval_iters = 2000
 n_embd = 16
-n_head = 3
-n_layer = 3
+n_head = 8
+n_layer = 8
 dropout = 0
 # ------------
 
-# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 with open('data\\data.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
@@ -31,7 +30,7 @@ decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integ
 
 # Train and test splits
 data = torch.tensor(encode(text), dtype=torch.long)
-n = int(0.9*len(data)) # first 90% will be train, rest val
+n = int(0.8 * len(data)) # first 80% will be train, rest val
 train_data = data[:n]
 val_data = data[n:]
 
@@ -61,7 +60,6 @@ def estimate_loss():
 
 class Head(nn.Module):
     """ one head of self-attention """
-
     def __init__(self, head_size):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
@@ -89,7 +87,6 @@ class Head(nn.Module):
 
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
-
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
@@ -103,7 +100,6 @@ class MultiHeadAttention(nn.Module):
 
 class FeedFoward(nn.Module):
     """ a simple linear layer followed by a non-linearity """
-
     def __init__(self, n_embd):
         super().__init__()
         self.net = nn.Sequential(
@@ -118,7 +114,6 @@ class FeedFoward(nn.Module):
 
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
-
     def __init__(self, n_embd, n_head):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
@@ -134,7 +129,6 @@ class Block(nn.Module):
         return x
 
 class GPTLanguageModel(nn.Module):
-
     def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
@@ -176,7 +170,7 @@ class GPTLanguageModel(nn.Module):
 
         return logits, loss
 
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx, max_new_tokens, temperature=1.0):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
@@ -186,7 +180,7 @@ class GPTLanguageModel(nn.Module):
             # focus only on the last time step
             logits = logits[:, -1, :] # becomes (B, C)
             # apply softmax to get probabilities
-            probs = F.softmax(logits, dim=-1) # (B, C)
+            probs = F.softmax(logits / temperature, dim=-1) # (B, C)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1) # (B, 1)
             # append sampled index to the running sequence
@@ -202,28 +196,28 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 for iter in range(max_iters):
-    if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
-        losses = estimate_loss()
-        print(f"step {iter + 1}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+    try:
+        if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
+            losses = estimate_loss()
+            print(f"step [{iter + 1}/{max_iters}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
-    # sample a batch of data
-    xb, yb = get_batch('train')
+        # sample a batch of data
+        xb, yb = get_batch('train')
 
-    # evaluate the loss
-    logits, loss = model(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    optimizer.step()
+        # evaluate the loss
+        logits, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+
+    except KeyboardInterrupt:
+        break
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
 
-context = torch.tensor(encode("Hello"), dtype=torch.long, device=device).unsqueeze(0)
-print(decode(m.generate(context, max_new_tokens=50)[0].tolist()))
+print("-"*10)
 
-context = torch.tensor(encode("Hello"), dtype=torch.long, device=device).unsqueeze(0)
-print(decode(m.generate(context, max_new_tokens=50)[0].tolist()))
-
-context = torch.tensor(encode("How hard working is Rockstar Games"), dtype=torch.long, device=device).unsqueeze(0)
-print(decode(m.generate(context, max_new_tokens=1000)[0].tolist()))
+context = torch.tensor(encode("Find the product of the numbers: 5 and 8"), dtype=torch.long, device=device).unsqueeze(0)
+print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
