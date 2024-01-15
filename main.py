@@ -3,20 +3,20 @@ import torch.nn as nn
 import torch, time
 
 # hyperparameters
-batch_size = 32 # how many independent sequences will we process in parallel?
-block_size = 50 # what is the maximum context length for predictions?
-max_iters = 5000
-eval_interval = 100
+batch_size = 16 # how many independent sequences will we process in parallel?
+block_size = 64 # what is the maximum context length for predictions?
+max_iters = 10000
+eval_interval = 200
 learning_rate = 1e-3
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 n_embd = 64
-n_head = 3
-n_layer = 3
+n_head = 5
+n_layer = 5
 dropout = 0
 # ------------
 
-with open('data\\data_small.txt', 'r', encoding='utf-8') as f:
+with open('data\\data.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
 # here are all the unique characters that occur in this text
@@ -222,11 +222,21 @@ print(f"Time taken: {(time.perf_counter() - start_time):.0f} sec")
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
 
-print("-"*10)
+contexts = [
+    "Human 1: Hello\nHuman 2: ",
+    "Find the product of these 2 numebrs: 5 and 8 ",
+    "We are accounted poor citizens, the patricians good.",
+    "Find the angle in the triangle using trigonometry: AB=5, BC=7, AC=9 Angle A = 65.7 degrees\nWhat is the value of Angle B in the triangle?"
+]
+
+print("-"*100)
 context = torch.tensor(encode("Human 1: Hello\nHuman 2: "), dtype=torch.long, device=device).unsqueeze(0)
 print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
 
-for i in range(10):
-    print("-"*10)
-    context = torch.tensor(encode("Human 1: Hello\nHuman 2: "), dtype=torch.long, device=device).unsqueeze(0)
-    print(decode(m.generate(context, max_new_tokens=100, temperature=0.5)[0].tolist()))
+for text in contexts:
+    context = torch.tensor(encode(text), dtype=torch.long, device=device).unsqueeze(0)
+    output = decode(m.generate(context, max_new_tokens=100, temperature=0.2)[0].tolist())
+
+    print("-"*100)
+    print(f"input:", text)
+    print("output:", output)
