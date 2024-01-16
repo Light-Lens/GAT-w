@@ -8,15 +8,15 @@ T1 = train(
     block_size = 64,
     lr = 1e-3,
     n_embd = 64,
-    n_layer = 5,
-    n_head = 5,
+    n_layer = 6,
+    n_head = 6,
     dropout = 0
 )
 
 T1.preprocess_data("data\\data_small.txt")
 T1.train(
-    n_steps = 5000,
-    eval_interval = 200,
+    n_steps = 10000,
+    eval_interval = 1000,
     eval_iters = 200
 )
 
@@ -25,4 +25,4 @@ T1.save("models\\GAT-w2.pth")
 # Use the model
 S1 = sample("models\\GAT-w2.pth")
 S1.load()
-dprint(S1.generate("Human 1: Hi\nHuman 2: "))
+dprint(S1.generate("Human 1: Hi\nHuman 2: ", length=20, temperature=0.2, top_k=200))

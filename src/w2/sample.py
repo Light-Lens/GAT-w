@@ -39,6 +39,12 @@ class sample:
         self.model.eval()  # Set the model to evaluation mode
 
     # Use the model for generation or other tasks
-    def generate(self, text):
+    def generate(self, text, length=100, temperature=1.0, top_k=None):
+        """
+        @param max_new_tokens: number of tokens generated in each sample
+        @param temperature: 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
+        @param tok_k: retain only the top_k most likely tokens, clamp others to have 0 probability
+        """
+
         context = torch.tensor(encode(text, stoi=self.stoi), dtype=torch.long, device=self.device).unsqueeze(0)
-        return decode(self.model.generate(context, max_new_tokens=100)[0].tolist(), itos=self.itos)
+        return decode(self.model.generate(context, max_new_tokens=length, temperature=temperature, top_k=top_k)[0].tolist(), itos=self.itos)
