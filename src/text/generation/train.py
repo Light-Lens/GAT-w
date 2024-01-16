@@ -44,7 +44,7 @@ def get_batch(split):
     return x, y
 
 @torch.no_grad()
-def estimate_loss(model, eval_iters, get_batch):
+def estimate_loss():
     out = {}
     model.eval()
     for split in ['train', 'val']:
