@@ -1,5 +1,5 @@
-from src.text.generation.utils import encode, decode
 from src.text.generation.model import GPT, set_params
+from src.text.generation.utils import encode
 import torch, time
 
 # hyperparameters
