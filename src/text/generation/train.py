@@ -1,5 +1,5 @@
 from src.text.generation.utils import encode, decode
-from src.text.generation.model import GPT
+from src.text.generation.model import GPT, set_params
 import torch, time
 
 # hyperparameters
@@ -34,7 +34,7 @@ train_data = data[:n]
 val_data = data[n:]
 
 # data loading
-def get_batch(split, train_data, val_data, block_size, batch_size, device):
+def get_batch(split):
     # generate a small batch of data of inputs x and targets y
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))
@@ -57,6 +57,8 @@ def estimate_loss(model, eval_iters, get_batch):
     model.train()
     return out
 
+# Set parameters and Create an instance of GPT
+set_params(_n_embd=n_embd, _n_head=n_head, _n_layer=n_layer, _block_size=block_size, _dropout=dropout, _vocab_size=vocab_size, _device=device)
 model = GPT()
 m = model.to(device)
 # print the number of parameters in the model
@@ -104,10 +106,3 @@ torch.save(
     },
     savepath
 )
-
-context = torch.tensor(encode("Human 1: Hello\nHuman 2: ", stoi=stoi), dtype=torch.long, device=device).unsqueeze(0)
-output = decode(model.generate(context, max_new_tokens=100)[0].tolist(), itos=itos)
-
-print("-" * 100)
-print("input:", "Human 1: Hello\nHuman 2: ")
-print("output:", output)

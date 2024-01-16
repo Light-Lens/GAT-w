@@ -2,6 +2,24 @@ from torch.nn import functional as F
 import torch.nn as nn
 import torch
 
+n_embd = 8
+n_head = 2
+n_layer = 2
+block_size = 16
+dropout = 0
+vocab_size = None
+device = None
+
+def set_params(_n_embd, _n_head, _n_layer, _block_size, _dropout, _vocab_size, _device):
+    global n_embd, n_head, n_layer, block_size, dropout, vocab_size, device
+    n_embd = _n_embd
+    n_head = _n_head
+    n_layer = _n_layer
+    block_size = _block_size
+    dropout = _dropout
+    vocab_size = _vocab_size
+    device = _device
+
 class Head(nn.Module):
     """ one head of self-attention """
     def __init__(self, head_size):
