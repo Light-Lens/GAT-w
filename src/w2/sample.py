@@ -1,5 +1,5 @@
-from src.text.generation.utils import encode, decode
-from src.text.generation.model import GPT, set_params
+from src.w2.utils import encode, decode
+from src.w2.model import GPT, set_params
 import torch
 
 class sample:
