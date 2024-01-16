@@ -2,107 +2,223 @@ from src.text.generation.model import GPT, set_params
 from src.text.generation.utils import encode
 import torch, time
 
-# hyperparameters
-batch_size = 16 # how many independent sequences will we process in parallel?
-block_size = 64 # what is the maximum context length for predictions?
-max_iters = 5000
-eval_interval = 200
-learning_rate = 1e-3
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 200
-n_embd = 64
-n_head = 5
-n_layer = 5
-dropout = 0
-savepath = "models\\GAT-w2.pth"
-# ------------
+class train:
+    def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size):
+        # hyperparameters
+        self.n_layer = n_layer
+        self.n_embd = n_embd
+        self.n_head = n_head
+        self.learning_rate = lr
+        self.dropout = dropout
+        self.block_size = block_size # what is the maximum context length for predictions?
+        self.batch_size = batch_size # how many independent sequences will we process in parallel?
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-with open('data\\data_small.txt', 'r', encoding='utf-8') as f:
-    text = f.read()
+    def preprocess_data(self, filepath):
+        with open(filepath, 'r', encoding='utf-8') as f:
+            text = f.read()
 
-# here are all the unique characters that occur in this text
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
-# create a mapping from characters to integers
-stoi = { ch:i for i,ch in enumerate(chars) }
-itos = { i:ch for i,ch in enumerate(chars) }
+        # here are all the unique characters that occur in this text
+        chars = sorted(list(set(text)))
+        self.vocab_size = len(chars)
+        # create a mapping from characters to integers
+        self.stoi = { ch:i for i,ch in enumerate(chars) }
+        self.itos = { i:ch for i,ch in enumerate(chars) }
 
-# Train and test splits
-data = torch.tensor(encode(text, stoi=stoi), dtype=torch.long)
-n = int(0.8 * len(data)) # first 80% will be train, rest val
-train_data = data[:n]
-val_data = data[n:]
+        # Train and test splits
+        data = torch.tensor(encode(text, stoi=self.stoi), dtype=torch.long)
+        n = int(0.8 * len(data)) # first 80% will be train, rest val
+        self.train_data = data[:n]
+        self.val_data = data[n:]
 
-# data loading
-def get_batch(split):
-    # generate a small batch of data of inputs x and targets y
-    data = train_data if split == 'train' else val_data
-    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i+block_size] for i in ix])
-    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    x, y = x.to(device), y.to(device)
-    return x, y
+    # data loading
+    def get_batch(self, split):
+        # generate a small batch of data of inputs x and targets y
+        data = self.train_data if split == 'train' else self.val_data
+        ix = torch.randint(len(data) - self.block_size, (self.batch_size,))
+        x = torch.stack([data[i:i+self.block_size] for i in ix])
+        y = torch.stack([data[i+1:i+self.block_size+1] for i in ix])
+        x, y = x.to(self.device), y.to(self.device)
+        return x, y
 
-@torch.no_grad()
-def estimate_loss():
-    out = {}
-    model.eval()
-    for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split)
-            logits, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean()
-    model.train()
-    return out
+    @torch.no_grad()
+    def estimate_loss(self, eval_iters):
+        out = {}
+        self.model.eval()
+        for split in ['train', 'val']:
+            losses = torch.zeros(eval_iters)
+            for k in range(eval_iters):
+                X, Y = self.get_batch(split)
+                logits, loss = self.model(X, Y)
+                losses[k] = loss.item()
+            out[split] = losses.mean()
+        self.model.train()
+        return out
 
-# Set parameters and Create an instance of GPT
-set_params(_n_embd=n_embd, _n_head=n_head, _n_layer=n_layer, _block_size=block_size, _dropout=dropout, _vocab_size=vocab_size, _device=device)
-model = GPT()
-m = model.to(device)
-# print the number of parameters in the model
-print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+    def train(self, n_steps, eval_interval, eval_iters):
+        # Set hyperparameters
+        set_params(
+            _n_embd = self.n_embd,
+            _n_head = self.n_head,
+            _n_layer = self.n_layer,
+            _block_size = self.block_size,
+            _dropout = self.dropout,
+            _vocab_size = self.vocab_size,
+            _device = self.device
+        )
 
-# create a PyTorch optimizer
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+        # Create an instance of GPT
+        self.model = GPT()
+        m = self.model.to(self.device)
+        # print the number of parameters in the model
+        print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 
-# start timer
-start_time = time.perf_counter()
+        # create a PyTorch optimizer
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
 
-for iter in range(max_iters):
-    try:
-        if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
-            losses = estimate_loss()
-            print(f"step [{iter + 1}/{max_iters}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        # start timer
+        start_time = time.perf_counter()
 
-        # sample a batch of data
-        xb, yb = get_batch('train')
+        for iter in range(n_steps):
+            try:
+                if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
+                    losses = self.estimate_loss(eval_iters)
+                    print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
-        # evaluate the loss
-        logits, loss = model(xb, yb)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
+                # sample a batch of data
+                xb, yb = self.get_batch('train')
 
-    except KeyboardInterrupt:
-        break
+                # evaluate the loss
+                logits, loss = self.model(xb, yb)
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
 
-print(f"Time taken: {(time.perf_counter() - start_time):.0f} sec")
-torch.save(
-    {
-        "state_dict": model.state_dict(),
-        "stoi": stoi,
-        "itos": itos,
-        "device": device,
-        "config": {
-            "n_embd": n_embd,
-            "n_head": n_head,
-            "n_layer": n_layer,
-            "block_size": block_size,
-            "dropout": dropout,
-            "vocab_size": vocab_size
-        }
-    },
-    savepath
-)
+            except KeyboardInterrupt:
+                break
+
+        print(f"Time taken: {(time.perf_counter() - start_time):.0f} sec")
+
+    def save(self, savepath):
+        torch.save(
+            {
+                "state_dict": self.model.state_dict(),
+                "stoi": self.stoi,
+                "itos": self.itos,
+                "device": self.device,
+                "config": {
+                    "n_embd": self.n_embd,
+                    "n_head": self.n_head,
+                    "n_layer": self.n_layer,
+                    "block_size": self.block_size,
+                    "dropout": self.dropout,
+                    "vocab_size": self.vocab_size
+                }
+            },
+            savepath
+        )
+
+# # hyperparameters
+# batch_size = 16 # how many independent sequences will we process in parallel?
+# block_size = 64 # what is the maximum context length for predictions?
+# max_iters = 5000
+# eval_interval = 200
+# learning_rate = 1e-3
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# eval_iters = 200
+# n_embd = 64
+# n_head = 5
+# n_layer = 5
+# dropout = 0
+# savepath = "models\\GAT-w2.pth"
+# # ------------
+
+# with open('data\\data_small.txt', 'r', encoding='utf-8') as f:
+#     text = f.read()
+
+# # here are all the unique characters that occur in this text
+# chars = sorted(list(set(text)))
+# vocab_size = len(chars)
+# # create a mapping from characters to integers
+# stoi = { ch:i for i,ch in enumerate(chars) }
+# itos = { i:ch for i,ch in enumerate(chars) }
+
+# # Train and test splits
+# data = torch.tensor(encode(text, stoi=stoi), dtype=torch.long)
+# n = int(0.8 * len(data)) # first 80% will be train, rest val
+# train_data = data[:n]
+# val_data = data[n:]
+
+# # data loading
+# def get_batch(split):
+#     # generate a small batch of data of inputs x and targets y
+#     data = train_data if split == 'train' else val_data
+#     ix = torch.randint(len(data) - block_size, (batch_size,))
+#     x = torch.stack([data[i:i+block_size] for i in ix])
+#     y = torch.stack([data[i+1:i+block_size+1] for i in ix])
+#     x, y = x.to(device), y.to(device)
+#     return x, y
+
+# @torch.no_grad()
+# def estimate_loss():
+#     out = {}
+#     model.eval()
+#     for split in ['train', 'val']:
+#         losses = torch.zeros(eval_iters)
+#         for k in range(eval_iters):
+#             X, Y = get_batch(split)
+#             logits, loss = model(X, Y)
+#             losses[k] = loss.item()
+#         out[split] = losses.mean()
+#     model.train()
+#     return out
+
+# # Set parameters and Create an instance of GPT
+# set_params(_n_embd=n_embd, _n_head=n_head, _n_layer=n_layer, _block_size=block_size, _dropout=dropout, _vocab_size=vocab_size, _device=device)
+# model = GPT()
+# m = model.to(device)
+# # print the number of parameters in the model
+# print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+
+# # create a PyTorch optimizer
+# optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+# # start timer
+# start_time = time.perf_counter()
+
+# for iter in range(max_iters):
+#     try:
+#         if (iter + 1) % eval_interval == 0 or iter == max_iters - 1:
+#             losses = estimate_loss()
+#             print(f"step [{iter + 1}/{max_iters}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+
+#         # sample a batch of data
+#         xb, yb = get_batch('train')
+
+#         # evaluate the loss
+#         logits, loss = model(xb, yb)
+#         optimizer.zero_grad(set_to_none=True)
+#         loss.backward()
+#         optimizer.step()
+
+#     except KeyboardInterrupt:
+#         break
+
+# print(f"Time taken: {(time.perf_counter() - start_time):.0f} sec")
+# torch.save(
+#     {
+#         "state_dict": model.state_dict(),
+#         "stoi": stoi,
+#         "itos": itos,
+#         "device": device,
+#         "config": {
+#             "n_embd": n_embd,
+#             "n_head": n_head,
+#             "n_layer": n_layer,
+#             "block_size": block_size,
+#             "dropout": dropout,
+#             "vocab_size": vocab_size
+#         }
+#     },
+#     savepath
+# )
