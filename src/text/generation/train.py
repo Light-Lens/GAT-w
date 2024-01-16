@@ -5,7 +5,7 @@ import torch, time
 # hyperparameters
 batch_size = 16 # how many independent sequences will we process in parallel?
 block_size = 64 # what is the maximum context length for predictions?
-max_iters = 10000
+max_iters = 5000
 eval_interval = 200
 learning_rate = 1e-3
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -17,7 +17,7 @@ dropout = 0
 savepath = "models\\GAT-w2.pth"
 # ------------
 
-with open('data\\data.txt', 'r', encoding='utf-8') as f:
+with open('data\\data_small.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
 # here are all the unique characters that occur in this text
