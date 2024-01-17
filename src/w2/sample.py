@@ -1,11 +1,11 @@
 from src.w2.utils import encode, decode
-from src.w2.model import GPT, set_params
+from src.w2.model import GPTConfig, GPT
 import torch
 
 class sample:
     def __init__(self, model_path):
         # Load the saved model
-        model_data = torch.load("models\\GAT-w2.pth")
+        model_data = torch.load(model_path)
 
         self.state_dict = model_data["state_dict"]
         self.stoi = model_data["stoi"]
@@ -20,15 +20,13 @@ class sample:
 
     def load(self):
         # Set hyperparameters
-        set_params(
-            _n_embd = self.n_embd,
-            _n_head = self.n_head,
-            _n_layer = self.n_layer,
-            _block_size = self.block_size,
-            _dropout = self.dropout,
-            _vocab_size = self.vocab_size,
-            _device = self.device
-        )
+        GPTConfig.n_embd = self.n_embd
+        GPTConfig.n_head = self.n_head
+        GPTConfig.n_layer = self.n_layer
+        GPTConfig.block_size = self.block_size
+        GPTConfig.dropout = self.dropout
+        GPTConfig.vocab_size = self.vocab_size
+        GPTConfig.device = self.device
 
         # Create an instance of GPT
         self.model = GPT()

@@ -2,34 +2,25 @@ from torch.nn import functional as F
 import torch.nn as nn
 import torch
 
-n_embd = 8
-n_head = 2
-n_layer = 2
-block_size = 16
-dropout = 0
-vocab_size = None
-device = None
-
-def set_params(_n_embd, _n_head, _n_layer, _block_size, _dropout, _vocab_size, _device):
-    global n_embd, n_head, n_layer, block_size, dropout, vocab_size, device
-    n_embd = _n_embd
-    n_head = _n_head
-    n_layer = _n_layer
-    block_size = _block_size
-    dropout = _dropout
-    vocab_size = _vocab_size
-    device = _device
+class GPTConfig:
+    n_embd = 8
+    n_head = 2
+    n_layer = 2
+    block_size = 16
+    dropout = 0
+    vocab_size = None
+    device = None
 
 class Head(nn.Module):
     """ one head of self-attention """
     def __init__(self, head_size):
         super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.key = nn.Linear(GPTConfig.n_embd, head_size, bias=False)
+        self.query = nn.Linear(GPTConfig.n_embd, head_size, bias=False)
+        self.value = nn.Linear(GPTConfig.n_embd, head_size, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones(GPTConfig.block_size, GPTConfig.block_size)))
 
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(GPTConfig.dropout)
 
     def forward(self, x):
         # input of size (batch, time-step, channels)
@@ -52,8 +43,8 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
+        self.proj = nn.Linear(head_size * num_heads, GPTConfig.n_embd)
+        self.dropout = nn.Dropout(GPTConfig.dropout)
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
@@ -68,7 +59,7 @@ class FeedFoward(nn.Module):
             nn.Linear(n_embd, 4 * n_embd),
             nn.ReLU(),
             nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout),
+            nn.Dropout(GPTConfig.dropout),
         )
 
     def forward(self, x):
@@ -94,11 +85,11 @@ class GPT(nn.Module):
     def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd) # final layer norm
-        self.lm_head = nn.Linear(n_embd, vocab_size)
+        self.token_embedding_table = nn.Embedding(GPTConfig.vocab_size, GPTConfig.n_embd)
+        self.position_embedding_table = nn.Embedding(GPTConfig.block_size, GPTConfig.n_embd)
+        self.blocks = nn.Sequential(*[Block(GPTConfig.n_embd, n_head=GPTConfig.n_head) for _ in range(GPTConfig.n_layer)])
+        self.ln_f = nn.LayerNorm(GPTConfig.n_embd) # final layer norm
+        self.lm_head = nn.Linear(GPTConfig.n_embd, GPTConfig.vocab_size)
 
         # better init, not covered in the original GPT video, but important, will cover in followup video
         self.apply(self._init_weights)
@@ -116,7 +107,7 @@ class GPT(nn.Module):
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=GPTConfig.device)) # (T,C)
         x = tok_emb + pos_emb # (B,T,C)
         x = self.blocks(x) # (B,T,C)
         x = self.ln_f(x) # (B,T,C)
@@ -136,7 +127,7 @@ class GPT(nn.Module):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
-            idx_cond = idx[:, -block_size:]
+            idx_cond = idx[:, -GPTConfig.block_size:]
             # get the predictions
             logits, loss = self(idx_cond)
             # focus only on the last time step

@@ -1,4 +1,4 @@
-from src.w2.model import GPT, set_params
+from src.w2.model import GPTConfig, GPT
 from src.w2.utils import encode
 import torch, time
 
@@ -14,7 +14,10 @@ class train:
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    def preprocess_data(self, filepath):
+        # print the device
+        print("Training on", self.device)
+
+    def preprocess_data(self, filepath, data_division=0.8):
         with open(filepath, 'r', encoding='utf-8') as f:
             text = f.read()
 
@@ -27,9 +30,13 @@ class train:
 
         # Train and test splits
         data = torch.tensor(encode(text, stoi=self.stoi), dtype=torch.long)
-        n = int(0.8 * len(data)) # first 80% will be train, rest val
+        n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]
+
+        # print the number of tokens
+        print(len(data), "total tokens")
+        print(len(self.train_data), "train tokens,", len(self.val_data), "test tokens")
 
     # data loading
     def get_batch(self, split):
@@ -57,15 +64,13 @@ class train:
 
     def train(self, n_steps, eval_interval, eval_iters):
         # Set hyperparameters
-        set_params(
-            _n_embd = self.n_embd,
-            _n_head = self.n_head,
-            _n_layer = self.n_layer,
-            _block_size = self.block_size,
-            _dropout = self.dropout,
-            _vocab_size = self.vocab_size,
-            _device = self.device
-        )
+        GPTConfig.n_embd = self.n_embd
+        GPTConfig.n_head = self.n_head
+        GPTConfig.n_layer = self.n_layer
+        GPTConfig.block_size = self.block_size
+        GPTConfig.dropout = self.dropout
+        GPTConfig.vocab_size = self.vocab_size
+        GPTConfig.device = self.device
 
         # Create an instance of GPT
         self.model = GPT()
