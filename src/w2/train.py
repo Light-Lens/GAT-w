@@ -35,8 +35,8 @@ class train:
         self.val_data = data[n:]
 
         # print the number of tokens
-        print(len(data), "total tokens")
-        print(len(self.train_data), "train tokens,", len(self.val_data), "test tokens")
+        print(len(data)/1e6, "M total tokens")
+        print(len(self.train_data)/1e6, "M train tokens,", len(self.val_data)/1e6, "M test tokens")
 
     # data loading
     def get_batch(self, split):
