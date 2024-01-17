@@ -4,20 +4,22 @@ from src.w2.utils import dprint
 
 # Train the model.
 T1 = train(
-    batch_size = 64,
-    block_size = 128,
-    lr = 3e-4,
-    n_embd = 256,
+    batch_size = 16,
+    block_size = 50,
+    lr = 2e-3,
+    n_embd = 64,
     n_layer = 6,
     n_head = 6,
     dropout = 0.2
 )
 
-T1.preprocess_data("data\\data_small.txt")
+T1.preprocess_data("data\\data_small.txt", 0.9)
 T1.train(
-    n_steps = 10000,
-    eval_interval = 1000,
-    eval_iters = 200
+    n_steps = 100000,
+    eval_interval = 2000,
+    eval_iters = 200,
+    checkpoint_interval = 2000,
+    checkpoint_path = "models\\checkpoint\\GAT-w2_small.pth"
 )
 
 T1.save("models\\GAT-w2_small.pth")

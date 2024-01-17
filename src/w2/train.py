@@ -1,6 +1,6 @@
 from src.w2.model import GPTConfig, GPT
 from src.w2.utils import encode
-import torch, time
+import torch, time, os
 
 class train:
     def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size):
@@ -62,7 +62,15 @@ class train:
         self.model.train()
         return out
 
-    def train(self, n_steps, eval_interval, eval_iters):
+    def train(self, n_steps, eval_interval, eval_iters, checkpoint_interval=0, checkpoint_path=""):
+        """
+        @param n_steps: number of Epochs to train the model for
+        @param eval_interval: the interval between each loss evaluation
+        @param eval_iters: the iterations for each loss evaluation
+        @param checkpoint_interval: the interval between each checkpoint save
+        @param checkpoint_path: the save path for the checkpoint
+        """
+
         # Set hyperparameters
         GPTConfig.n_embd = self.n_embd
         GPTConfig.n_head = self.n_head
@@ -86,6 +94,14 @@ class train:
 
         for iter in range(n_steps):
             try:
+                if checkpoint_interval != 0 and checkpoint_path != "" and (iter + 1) % checkpoint_interval == 0:
+                    # split the filepath into path, filename, and extension
+                    path, filename_with_extension = os.path.split(checkpoint_path)
+                    filename, extension = os.path.splitext(filename_with_extension)
+
+                    # save the model checkpoint
+                    self.save(os.path.join(path, f"{filename}_{(iter + 1)}{extension}"))
+
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
                     losses = self.estimate_loss(eval_iters)
                     print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
