@@ -10,49 +10,28 @@ def dprint(text, delay=0.001):
         time.sleep(delay)
     print()
 
-with open("data\\extract.txt", 'r', encoding='utf-8') as f:
-    text = [i.strip() for i in f.readlines()]
-
-maxlen = len(max(text, key=len))
-
-# A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches
-# the length of the longest sentence
-for i in range(len(text)):
-    while len(text[i]) < maxlen:
-        text[i] += ' '
-
 # Train the model.
 T1 = train(
-    batch_size = 16,
-    block_size = maxlen,
-    lr = 1e-2,
-    n_embd = 4,
-    n_layer = 2,
-    n_head = 2,
+    batch_size = 64,
+    block_size = 100,
+    lr = 2e-3,
+    n_embd = 64,
+    n_layer = 12,
+    n_head = 12,
     dropout = 0
 )
 
-T1.preprocess_data("\n".join(text), 0.9)
+T1.preprocess("data\\data.txt", 0.9)
 T1.train(
     n_steps = 5000,
     eval_interval = 500,
     eval_iters = 200
 )
 
-T1.save("models\\GAT-w2_extract.pth")
+T1.save("models\\GAT-w2.pth")
 
 # Use the model
-S1 = sample("models\\GAT-w2_extract.pth")
+S1 = sample("models\\GAT-w2.pth")
 S1.load()
 
-dprint(S1.generate("please open google chrome", length=maxlen))
-
-# while True:
-#     inp = input("> ")
-#     if inp == "":
-#         continue
-
-#     elif inp == "q" or inp == "bye":
-#         break
-
-#     dprint(S1.generate(inp, length=500))
+dprint(S1.generate("", length=50))

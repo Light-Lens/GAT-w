@@ -21,7 +21,10 @@ class train:
         # print the device
         print("Training on", self.device)
 
-    def preprocess_data(self, text, data_division=0.8):
+    def preprocess_data(self, filepath, data_division=0.8):
+        with open(filepath, 'r', encoding='utf-8') as f:
+            text = f.read()
+
         # here are all the unique characters that occur in this text
         chars = sorted(list(set(text)))
         self.vocab_size = len(chars)
