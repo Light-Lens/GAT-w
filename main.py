@@ -45,7 +45,7 @@ T1.save("models\\GAT-w2_extract.pth")
 S1 = sample("models\\GAT-w2_extract.pth")
 S1.load()
 
-dprint(S1.generate("", length=500))
+dprint(S1.generate("please open google chrome", length=maxlen))
 
 # while True:
 #     inp = input("> ")
