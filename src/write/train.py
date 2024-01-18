@@ -1,5 +1,5 @@
-from write.model import GPTConfig, GPT
-from write.utils import encode
+from src.write.model import GPTConfig, GPT
+from src.write.utils import encode
 import torch, time, os
 
 class train:

@@ -1,5 +1,5 @@
-from write.utils import encode, decode
-from write.model import GPTConfig, GPT
+from src.write.utils import encode, decode
+from src.write.model import GPTConfig, GPT
 import torch
 
 class sample:

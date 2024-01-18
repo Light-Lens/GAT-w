@@ -1,16 +1,16 @@
-from write.train import train
-from write.sample import sample
-from write.utils import dprint
+from src.write.train import train
+from src.write.sample import sample
+from src.write.utils import dprint
 
 # Train the model.
 T1 = train(
     batch_size = 16,
     block_size = 50,
     lr = 1e-2,
-    n_embd = 64,
+    n_embd = 16,
     n_layer = 3,
     n_head = 3,
-    dropout = 0
+    dropout = 0.2
 )
 
 T1.preprocess_data("data\\data_chatgpt.txt", 0.9)
