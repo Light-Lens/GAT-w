@@ -1,7 +1,5 @@
-# from src.write.train import train
-# from src.write.sample import sample
-from src.alphabet.train import train
-from src.alphabet.sample import sample
+from src.write.train import train
+from src.write.sample import sample
 import time
 
 # ChatGPT like print effect.
@@ -23,8 +21,7 @@ T1 = train(
     dropout = 0
 )
 
-T1.preprocess("data\\and.json", "and", 0.9)
-# T1.preprocess("data\\data.txt", 0.9)
+T1.preprocess("data\\data.txt", 0.9)
 T1.train(
     n_steps = 5000,
     eval_interval = 500,
@@ -37,9 +34,4 @@ T1.save("models\\and.pth")
 S1 = sample("models\\and.pth")
 S1.load()
 
-print(S1.classify("search for a neural network and play mere hi liye"))
-print(S1.classify("if you don't mind would you please search google about shahrukh khan"))
-print(S1.classify("open chrome and search on the internet How do you make a game engine"))
-print(S1.classify("please search on google What is a game engine?"))
-
-# dprint(S1.generate("", length=50))
+dprint(S1.generate("", length=50))
