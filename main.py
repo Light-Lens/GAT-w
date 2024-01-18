@@ -12,34 +12,39 @@ def dprint(text, delay=0.001):
 
 # Train the model.
 T1 = train(
-    batch_size = 64,
-    block_size = 50,
-    lr = 2e-3,
-    n_embd = 16,
-    n_layer = 4,
-    n_head = 4,
+    batch_size = 128,
+    block_size = 100,
+    lr = 1e-3,
+    n_embd = 64,
+    n_layer = 5,
+    n_head = 5,
     dropout = 0
 )
 
-T1.preprocess_data("data\\data_small.txt", 0.9)
+with open("data\\extract.txt", 'r', encoding='utf-8') as f:
+    text = f.read()
+
+T1.preprocess_data(text, 0.9)
 T1.train(
     n_steps = 5000,
-    eval_interval = 1000,
+    eval_interval = 500,
     eval_iters = 200
 )
 
-T1.save("models\\GAT-w2_chat.pth")
+T1.save("models\\GAT-w2_extract.pth")
 
 # Use the model
-S1 = sample("models\\GAT-w2_chat.pth")
+S1 = sample("models\\GAT-w2_extract.pth")
 S1.load()
 
-while True:
-    inp = input("> ")
-    if inp == "":
-        continue
+dprint(S1.generate("", length=500))
 
-    elif inp == "q" or inp == "bye":
-        break
+# while True:
+#     inp = input("> ")
+#     if inp == "":
+#         continue
 
-    dprint(S1.generate(inp, length=50))
+#     elif inp == "q" or inp == "bye":
+#         break
+
+#     dprint(S1.generate(inp, length=500))
