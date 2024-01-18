@@ -23,7 +23,7 @@ class train:
 
     def preprocess(self, filepath, intent_name, data_division=0.8):
         with open(filepath, "r", encoding="utf-8") as f:
-            intents = json.load(f)
+            data = json.load(f)
 
         intents = data[intent_name]
         patterns = []
