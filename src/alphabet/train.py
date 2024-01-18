@@ -1,6 +1,6 @@
-from src.write.model import GPTConfig, GPT
+from src.alphabet.model import GPTConfig, GPT
 from src.write.utils import encode
-import torch, time, os
+import torch, time, json, os
 
 class train:
     def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size, device="auto"):
@@ -21,20 +21,35 @@ class train:
         # print the device
         print("Training on", self.device)
 
-    def preprocess(self, filepath, data_division=0.8):
-        with open(filepath, 'r', encoding='utf-8') as f:
-            text = f.read()
+    def preprocess(self, filepath, intent_name, data_division=0.8):
+        with open(filepath, "r", encoding="utf-8") as f:
+            intents = json.load(f)
 
-        # here are all the unique characters that occur in this text
-        chars = sorted(list(set(text)))
-        self.vocab_size = len(chars)
-        # create a mapping from characters to integers
-        self.stoi = { ch:i for i,ch in enumerate(chars) }
-        self.itos = { i:ch for i,ch in enumerate(chars) }
+        intents = data[intent_name]
+        patterns = []
+        labels = []
+
+        for intent in intents:
+            tag = intent["tag"]
+            for pattern in intent["patterns"]:
+                patterns.append(pattern)
+                labels.append(tag)
+
+        # here are all the unique labels (intents)
+        unique_labels = sorted(list(set(labels)))
+        self.num_classes = len(unique_labels)
+
+        # create a mapping from labels to integers
+        self.intents = {label: i for i, label in enumerate(unique_labels)}
+        self.intents_inv = {i: label for label, i in self.intents.items()}
+
+        # create a mapping from patterns to integers
+        self.stoi = {pattern: i for i, pattern in enumerate(patterns)}
+        self.itos = {i: pattern for pattern, i in self.stoi.items()}
 
         # Train and test splits
-        data = torch.tensor(encode(text, stoi=self.stoi), dtype=torch.long)
-        n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
+        data = torch.tensor([encode(pattern, stoi=self.stoi) for pattern in patterns], dtype=torch.long)
+        n = int(data_division * len(data))  # the first (data_division * 100)% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]
 
@@ -48,7 +63,7 @@ class train:
         data = self.train_data if split == 'train' else self.val_data
         ix = torch.randint(len(data) - self.block_size, (self.batch_size,))
         x = torch.stack([data[i:i+self.block_size] for i in ix])
-        y = torch.stack([data[i+1:i+self.block_size+1] for i in ix])
+        y = torch.tensor([self.stoi[pattern] for pattern in y[ix]], dtype=torch.long)
         x, y = x.to(self.device), y.to(self.device)
         return x, y
 
@@ -81,7 +96,8 @@ class train:
         GPTConfig.n_layer = self.n_layer
         GPTConfig.block_size = self.block_size
         GPTConfig.dropout = self.dropout
-        GPTConfig.vocab_size = self.vocab_size
+        GPTConfig.vocab_size = len(self.stoi)
+        GPTConfig.output_size = self.num_classes
         GPTConfig.device = self.device
 
         # Create an instance of GPT
@@ -130,14 +146,16 @@ class train:
                 "state_dict": self.model.state_dict(),
                 "stoi": self.stoi,
                 "itos": self.itos,
+                "intents": self.intents,
+                "intents_inv": self.intents_inv,
                 "device": self.device,
                 "config": {
                     "n_embd": self.n_embd,
                     "n_head": self.n_head,
                     "n_layer": self.n_layer,
                     "block_size": self.block_size,
+                    "num_classes": self.num_classes,
                     "dropout": self.dropout,
-                    "vocab_size": self.vocab_size
                 }
             },
             savepath

@@ -9,6 +9,7 @@ class GPTConfig:
     block_size = 16
     dropout = 0
     vocab_size = None
+    output_size = None
     device = None
 
 class Head(nn.Module):
@@ -89,7 +90,7 @@ class GPT(nn.Module):
         self.position_embedding_table = nn.Embedding(GPTConfig.block_size, GPTConfig.n_embd)
         self.blocks = nn.Sequential(*[Block(GPTConfig.n_embd, n_head=GPTConfig.n_head) for _ in range(GPTConfig.n_layer)])
         self.ln_f = nn.LayerNorm(GPTConfig.n_embd) # final layer norm
-        self.lm_head = nn.Linear(GPTConfig.n_embd, GPTConfig.vocab_size)
+        self.lm_head = nn.Linear(GPTConfig.n_embd, GPTConfig.output_size)
 
         # better init, not covered in the original GPT video, but important, will cover in followup video
         self.apply(self._init_weights)
@@ -111,7 +112,7 @@ class GPT(nn.Module):
         x = tok_emb + pos_emb # (B,T,C)
         x = self.blocks(x) # (B,T,C)
         x = self.ln_f(x) # (B,T,C)
-        logits = self.lm_head(x) # (B,T,vocab_size)
+        logits = self.lm_head(x) # (B,T,output_size)
 
         if targets is None:
             loss = None
