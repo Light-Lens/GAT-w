@@ -1,9 +1,9 @@
-from src.w2.model import GPTConfig, GPT
-from src.w2.utils import encode
+from write.model import GPTConfig, GPT
+from write.utils import encode
 import torch, time, os
 
 class train:
-    def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size):
+    def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size, device="auto"):
         # hyperparameters
         self.n_layer = n_layer
         self.n_embd = n_embd
@@ -12,7 +12,11 @@ class train:
         self.dropout = dropout
         self.block_size = block_size # what is the maximum context length for predictions?
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device == "auto":
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        else:
+            self.device = device
 
         # print the device
         print("Training on", self.device)
@@ -94,14 +98,6 @@ class train:
 
         for iter in range(n_steps):
             try:
-                if checkpoint_interval != 0 and checkpoint_path != "" and (iter + 1) % checkpoint_interval == 0:
-                    # split the filepath into path, filename, and extension
-                    path, filename_with_extension = os.path.split(checkpoint_path)
-                    filename, extension = os.path.splitext(filename_with_extension)
-
-                    # save the model checkpoint
-                    self.save(os.path.join(path, f"{filename}_{(iter + 1)}{extension}"))
-
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
                     losses = self.estimate_loss(eval_iters)
                     print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
@@ -114,6 +110,14 @@ class train:
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+
+                if checkpoint_interval != 0 and checkpoint_path != "" and (iter + 1) % checkpoint_interval == 0:
+                    # split the filepath into path, filename, and extension
+                    path, filename_with_extension = os.path.split(checkpoint_path)
+                    filename, extension = os.path.splitext(filename_with_extension)
+
+                    # save the model checkpoint
+                    self.save(os.path.join(path, f"{filename}_{(iter + 1)}{extension}"))
 
             except KeyboardInterrupt:
                 break
