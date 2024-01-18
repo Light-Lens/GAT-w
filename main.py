@@ -10,21 +10,29 @@ def dprint(text, delay=0.001):
         time.sleep(delay)
     print()
 
+with open("data\\extract.txt", 'r', encoding='utf-8') as f:
+    text = [i.strip() for i in f.readlines()]
+
+maxlen = len(max(text, key=len))
+
+# A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches
+# the length of the longest sentence
+for i in range(len(text)):
+    while len(text[i]) < maxlen:
+        text[i] += ' '
+
 # Train the model.
 T1 = train(
-    batch_size = 128,
-    block_size = 100,
-    lr = 1e-3,
-    n_embd = 64,
-    n_layer = 5,
-    n_head = 5,
+    batch_size = 16,
+    block_size = maxlen,
+    lr = 1e-2,
+    n_embd = 4,
+    n_layer = 2,
+    n_head = 2,
     dropout = 0
 )
 
-with open("data\\extract.txt", 'r', encoding='utf-8') as f:
-    text = f.read()
-
-T1.preprocess_data(text, 0.9)
+T1.preprocess_data("\n".join(text), 0.9)
 T1.train(
     n_steps = 5000,
     eval_interval = 500,
