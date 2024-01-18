@@ -28,10 +28,10 @@ T1.train(
     eval_iters = 200
 )
 
-T1.save("models\\and.pth")
+T1.save("models\\GAT-w2.pth")
 
 # # Use the model
-S1 = sample("models\\and.pth")
+S1 = sample("models\\GAT-w2.pth")
 S1.load()
 
 dprint(S1.generate("", length=50))
