@@ -99,6 +99,7 @@ class GPT(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
                 torch.nn.init.zeros_(module.bias)
+
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
@@ -115,6 +116,7 @@ class GPT(nn.Module):
 
         if targets is None:
             loss = None
+
         else:
             B, T, C = logits.shape
             logits = logits.view(B*T, C)

@@ -96,6 +96,7 @@ class train:
         # start timer
         start_time = time.perf_counter()
 
+        # train the model for n_steps
         for iter in range(n_steps):
             try:
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
