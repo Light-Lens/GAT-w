@@ -12,21 +12,48 @@ def dprint(text, delay=0.001):
         time.sleep(delay)
     print()
 
-T1 = atrain(
+# Train the model.
+gen = wtrain(
+    batch_size = 64,
+    block_size = 1024,
+    lr = 2e-3,
+    n_embd = 368,
+    n_layer = 12,
+    n_head = 12,
+    dropout = 0
+)
+
+gen.preprocess("data\\data.txt", 0.9)
+gen.train(
+    n_steps = 5000,
+    eval_interval = 500,
+    eval_iters = 500
+)
+
+gen.save("models\\GAT-w2.pth")
+
+# Use the model
+S1 = wsample("models\\GAT-w2.pth")
+S1.load()
+
+dprint(S1.generate("", length=50))
+
+# Train the model
+classify = atrain(
     n_layer = 1,
     n_hidden = 1,
     lr = 1e-2,
     batch_size = 32,
 )
 
-T1.preprocess("data\\and.json", metadata=("and", "bool", "patterns"))
-T1.train(
+classify.preprocess("data\\and.json", metadata=("and", "bool", "patterns"))
+classify.train(
     n_steps = 5000,
     eval_interval = 500,
     eval_iters = 500
 )
 
-T1.save("models\\and.pth")
+classify.save("models\\and.pth")
 
 S1 = asample("models\\and.pth")
 S1.load()
@@ -54,29 +81,3 @@ print(S1.predict("start chrome.exe"))
 print(S1.predict("You know yesterday I was playing a game and I lost it :("))
 print(S1.predict("How do you make a game engine and remember to make it in c++"))
 print(S1.predict("open chrome and search on the internet How do you make a game engine"))
-
-# Train the model.
-# T1 = wtrain(
-#     batch_size = 64,
-#     block_size = 1024,
-#     lr = 2e-3,
-#     n_embd = 368,
-#     n_layer = 12,
-#     n_head = 12,
-#     dropout = 0
-# )
-
-# T1.preprocess("data\\data.txt", 0.9)
-# T1.train(
-#     n_steps = 5000,
-#     eval_interval = 500,
-#     eval_iters = 500
-# )
-
-# T1.save("models\\GAT-w2.pth")
-
-# # Use the model
-# S1 = wsample("models\\GAT-w2.pth")
-# S1.load()
-
-# dprint(S1.generate("", length=50))
