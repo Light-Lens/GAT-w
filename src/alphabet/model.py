@@ -41,7 +41,7 @@ class FeedForward(nn.Module):
             loss = F.cross_entropy(out, targets)
 
         return out, loss
-    
+
     def predict(self, x, classes):
         out, _ = self(x)
         _, predicted = torch.max(out, dim=1)

@@ -13,30 +13,30 @@ def dprint(text, delay=0.001):
     print()
 
 # Train the model.
-gen = wtrain(
-    batch_size = 64,
-    block_size = 1024,
-    lr = 2e-3,
-    n_embd = 368,
-    n_layer = 12,
-    n_head = 12,
-    dropout = 0
-)
+# gen = wtrain(
+#     batch_size = 64,
+#     block_size = 1024,
+#     lr = 2e-3,
+#     n_embd = 368,
+#     n_layer = 12,
+#     n_head = 12,
+#     dropout = 0
+# )
 
-gen.preprocess("data\\data.txt", 0.9)
-gen.train(
-    n_steps = 5000,
-    eval_interval = 500,
-    eval_iters = 500
-)
+# gen.preprocess("data\\data.txt", 0.9)
+# gen.train(
+#     n_steps = 5000,
+#     eval_interval = 500,
+#     eval_iters = 500
+# )
 
-gen.save("models\\GAT-w2.pth")
+# gen.save("models\\GAT-w2.pth")
 
-# Use the model
-S1 = wsample("models\\GAT-w2.pth")
-S1.load()
+# # Use the model
+# S1 = wsample("models\\GAT-w2.pth")
+# S1.load()
 
-dprint(S1.generate("", length=50))
+# dprint(S1.generate("", length=50))
 
 # Train the model
 classify = atrain(
