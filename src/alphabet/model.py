@@ -1,54 +1,55 @@
 from torch.nn import functional as F
-import torch.nn as nn
-import torch
+import torch.nn as nn, torch
 
-class LSTMConfig:
-    n_embd = 8
+class FeedForwardConfig:
     n_hidden = 2
-    n_layer = 2
-    dropout = 0
-    vocab_size = None
+    n_layer = 1
+    input_size = None
     output_size = None
-    device = None
 
-class LSTM(nn.Module):
+class FeedForward(nn.Module):
     def __init__(self):
-        super(LSTM, self).__init__()
+        super(FeedForward, self).__init__()
 
-        # Defining the layers
-        self.embedding = nn.Embedding(LSTMConfig.vocab_size, LSTMConfig.n_embd)
-        self.lstm = nn.LSTM(LSTMConfig.n_embd, LSTMConfig.n_hidden, LSTMConfig.n_layer, batch_first=True) # LSTM layer
-        self.dropout = nn.Dropout(LSTMConfig.dropout) # Dropout layer
-        self.fc = nn.Linear(LSTMConfig.n_hidden, LSTMConfig.output_size) # Fully connected layer
+        # Create a list to hold the layers
+        self.layers = nn.ModuleList()
+
+        # Add input layer
+        self.layers.append(nn.Linear(FeedForwardConfig.input_size, FeedForwardConfig.n_hidden))
+        self.layers.append(nn.ReLU())
+
+        # Add hidden layers
+        for _ in range(FeedForwardConfig.n_layer - 1):
+            self.layers.append(nn.Linear(FeedForwardConfig.n_hidden, FeedForwardConfig.n_hidden))
+            self.layers.append(nn.ReLU())
+
+        # Add output layer
+        self.layers.append(nn.Linear(FeedForwardConfig.n_hidden, FeedForwardConfig.output_size))
 
     def forward(self, x, targets=None):
-        embedded = self.embedding(x)
-        batch_size = x.size(0)
+        out = x
+        for layer in self.layers:
+            out = layer(out)
 
-        # Initialize hidden state for the first input using method defined below
-        hidden = self._init_hidden(batch_size)
-
-        # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden = self.lstm(embedded, hidden)
-
-        # Reshaping the outputs such that it can be fit into the fully connected layer
-        out = out.contiguous().view(-1, LSTMConfig.n_hidden)
-        out = self.fc(out)
+        # Apply softmax to obtain probabilities for each class
+        out = F.softmax(out, dim=-1)
 
         if targets is None:
             loss = None
 
         else:
-            targets = targets.unsqueeze(2)
-            targets = targets.expand(-1, -1, LSTMConfig.n_hidden)
-            targets = targets.view(-1, LSTMConfig.n_hidden).float()
             loss = F.cross_entropy(out, targets)
 
-        return out, hidden, loss
+        return out, loss
+    
+    def predict(self, x, classes):
+        out, _ = self(x)
+        _, predicted = torch.max(out, dim=1)
 
-    def _init_hidden(self, batch_size):
-        # Initialize both hidden state and cell state
-        return (
-            torch.zeros(LSTMConfig.n_layer, batch_size, LSTMConfig.n_hidden).to(LSTMConfig.device),
-            torch.zeros(LSTMConfig.n_layer, batch_size, LSTMConfig.n_hidden).to(LSTMConfig.device)
-        )
+        tag = classes[predicted.item()]
+
+        probs = torch.softmax(out, dim=1)
+        prob = probs[0][predicted.item()]
+        confidence = prob.item()
+
+        return tag, confidence

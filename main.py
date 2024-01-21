@@ -2,12 +2,10 @@ from src.alphabet.train import train
 from src.alphabet.sample import sample
 
 T1 = train(
-    batch_size = 8,
-    lr = 1e-2,
-    n_embd = 8,
-    n_layer = 2,
+    n_layer = 1,
     n_hidden = 2,
-    dropout = 0
+    lr = 1e-3,
+    batch_size = 8,
 )
 
 T1.preprocess("data\\and.json", ("and", "bool", "patterns"))
@@ -21,7 +19,7 @@ T1.save("models\\and.pth")
 
 S1 = sample("models\\and.pth")
 S1.load()
-S1.classify("please open google chrome")
+print(S1.predict("please open google chrome"))
 
 # from src.write.train import train
 # from src.write.sample import sample

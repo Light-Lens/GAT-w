@@ -1,14 +1,12 @@
-from src.alphabet.model import LSTMConfig, LSTM
-from src.write.utils import encode
+from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
+from src.alphabet.model import FeedForwardConfig, FeedForward
 import torch, json, time, os
 
 class train:
-    def __init__(self, n_layer, n_embd, n_hidden, lr, dropout, batch_size, device="auto"):
+    def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
         # hyperparameters
-        self.n_embd = n_embd
         self.n_hidden = n_hidden
         self.n_layer = n_layer
-        self.dropout = dropout
         self.device = device
         self.learning_rate = lr
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
@@ -24,7 +22,7 @@ class train:
     def preprocess(self, filepath, metadata, data_division=0.8):
         """
         @param filepath: the location of the json file.
-        @param metadata: classname, tagname, pattern_name = metadata
+        @param metadata: (classname, tagname, pattern_name)
         @param data_division: split the dataset into train and val data
         """
 
@@ -32,58 +30,58 @@ class train:
             jsondata = json.load(f)
 
         classname, tagname, pattern_name = metadata
-        classes = []
-        chars = []
+        self.classes = []
+        self.vocab = []
         xy = [] # x: pattern, y: tag
 
         for intent in jsondata[classname]:
-            tag = f"{classname};{intent[tagname]}"
-            classes.append(tag)
+            y_encode = f"{classname};{intent[tagname]}"
+            self.classes.append(y_encode)
 
             for pattern in intent[pattern_name]:
-                chars.extend(list(pattern))
-                xy.append((pattern, tag))
+                tokenized_words = tokenize(pattern)
+                self.vocab.extend(tokenized_words)
+                xy.append((tokenized_words, y_encode))
 
-        self.output_size = len(classes)
+        # Stem, lower each word and remove stop words
+        self.vocab = stop_words(self.vocab)
 
-        # here are all the unique characters that occur in the chars list
-        chars = sorted(list(set(chars)))
-        self.vocab_size = len(chars)
-        # create a mapping from characters to integers
-        self.stoi = { ch:i for i,ch in enumerate(chars) }
-        self.itos = { i:ch for i,ch in enumerate(chars) }
-
-        # encode xy
-        data = []
-        x_maxlen = len(max([pattern for pattern, _ in xy], key=len))
-
-        for pattern, tag in xy:
-            x = pattern + " " * (x_maxlen - len(pattern))
-            y = tag + " " * (x_maxlen - len(tag))
-
-            data.append(
-                (
-                    torch.tensor(encode(x, stoi=self.stoi), dtype=torch.long),
-                    torch.tensor(encode(y, stoi=self.stoi), dtype=torch.long)
-                )
-            )
+        # Remove duplicates and sort
+        self.vocab = sorted(set(self.vocab))
+        self.classes = sorted(set(self.classes))
 
         # Train and test splits
-        n = int(data_division * len(xy)) # the first (data_division * 100)% will be train, rest val
+        data = []
+        for x, y in xy:
+            x_encode = one_hot_encoding(x, self.vocab)
+            y_encode = self.classes.index(y)
+            data.append((x_encode, y_encode))
+
+        # x_data = torch.stack([torch.tensor(x) for x, _ in data])
+        # y_data = torch.stack([torch.tensor(y) for _, y in data])
+        # data = torch.stack([x_data, y_data], dim=1)
+
+        data = torch.stack([torch.cat((torch.tensor(item[0]), torch.tensor([item[1]]))) for item in data])
+        n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]
 
         # print the number of tokens
-        print(len(data)/1e6, "M total patterns")
-        print(len(self.train_data)/1e6, "M train patterns,", len(self.val_data)/1e6, "M test patterns")
+        print(len(xy)/1e6, "M total tokens")
+        print(len(self.vocab), "vocab size,", len(self.classes), "output size,")
+        print(len(self.train_data)/1e6, "M train data,", len(self.val_data)/1e6, "M test data")
 
     # data loading
     def get_batch(self, split):
         # generate a small batch of data of inputs x and targets y
         data = self.train_data if split == 'train' else self.val_data
-        ix = torch.randint(len(data), (self.batch_size,))
-        x = torch.stack([data[i][0] for i in ix])
-        y = torch.stack([data[i][1] for i in ix])
+        x, y = data[:, 0], data[:, 1]
+
+        # randomly sample indices for the batch
+        i = torch.randperm(len(data))[:self.batch_size]
+
+        # select data points using the sampled indices
+        x, y = x[i], y[i]
         x, y = x.to(self.device), y.to(self.device)
         return x, y
 
@@ -95,7 +93,7 @@ class train:
             losses = torch.zeros(eval_iters)
             for k in range(eval_iters):
                 X, Y = self.get_batch(split)
-                output, hidden, loss = self.model(X, Y)
+                output, loss = self.model(X, Y)
                 losses[k] = loss.item()
             out[split] = losses.mean()
         self.model.train()
@@ -110,22 +108,19 @@ class train:
         @param checkpoint_path: the save path for the checkpoint
         """
 
-        # Set hyperparameters
-        LSTMConfig.n_embd = self.n_embd
-        LSTMConfig.n_hidden = self.n_hidden
-        LSTMConfig.n_layer = self.n_layer
-        LSTMConfig.dropout = self.dropout
-        LSTMConfig.vocab_size = self.vocab_size
-        LSTMConfig.output_size = self.output_size
-        LSTMConfig.device = self.device
+        # set hyperparameters
+        FeedForwardConfig.n_layer = self.n_layer
+        FeedForwardConfig.n_hidden = self.n_hidden
+        FeedForwardConfig.input_size = len(self.vocab)
+        FeedForwardConfig.output_size = len(self.classes)
 
-        # Create an instance of GPT
-        self.model = LSTM()
+        # create an instance of FeedForward network
+        self.model = FeedForward()
         m = self.model.to(self.device)
         # print the number of parameters in the model
         print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 
-        # create a PyTorch optimizer and 
+        # create a PyTorch optimizer
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
 
         # start timer
@@ -142,7 +137,7 @@ class train:
                 xb, yb = self.get_batch('train')
 
                 # evaluate the loss
-                out, hidden, loss = self.model(xb, yb)
+                out, loss = self.model(xb, yb)
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
@@ -164,16 +159,12 @@ class train:
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
-                "stoi": self.stoi,
-                "itos": self.itos,
+                "vocab": self.vocab,
+                "classes": self.classes,
                 "device": self.device,
                 "config": {
-                    "n_embd": self.n_embd,
-                    "n_head": self.n_hidden,
-                    "n_layer": self.n_layer,
-                    "dropout": self.dropout,
-                    "vocab_size": self.vocab_size,
-                    "output_size": self.output_size
+                    "n_hidden": self.n_hidden,
+                    "n_layer": self.n_layer
                 }
             },
             savepath
