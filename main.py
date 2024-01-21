@@ -1,25 +1,26 @@
 from src.alphabet.train import train
 from src.alphabet.sample import sample
 
-T1 = train(
-    n_layer = 1,
-    n_hidden = 2,
-    lr = 1e-3,
-    batch_size = 8,
-)
+# T1 = train(
+#     n_layer = 2,
+#     n_hidden = 2,
+#     lr = 1e-3,
+#     batch_size = 32,
+# )
 
-T1.preprocess("data\\and.json", ("and", "bool", "patterns"))
-T1.train(
-    n_steps = 5000,
-    eval_interval = 500,
-    eval_iters = 500
-)
+# T1.preprocess("data\\and.json", metadata=("and", "bool", "patterns"), data_division=0.9)
+# T1.train(
+#     n_steps = 5000,
+#     eval_interval = 500,
+#     eval_iters = 500
+# )
 
-T1.save("models\\and.pth")
+# T1.save("models\\and.pth")
 
 S1 = sample("models\\and.pth")
 S1.load()
-print(S1.predict("please open google chrome"))
+print(S1.predict("I guess you don't know yesterday with me and nither you know why I made that."))
+print(S1.predict("may you please delete this file and also hit some song on spotify"))
 
 # from src.write.train import train
 # from src.write.sample import sample

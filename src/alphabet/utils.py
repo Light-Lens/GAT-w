@@ -1,6 +1,6 @@
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-import torch, nltk
+import numpy, nltk
 
 Lemmatizer = WordNetLemmatizer()
 
@@ -12,7 +12,7 @@ def lemmatize(word):
 
 def one_hot_encoding(tokenized_sentence, words):
     sentence_words = set([lemmatize(word) for word in tokenized_sentence])
-    encoding = torch.zeros(len(words), dtype=torch.float32)
+    encoding = numpy.zeros(len(words), dtype=numpy.float32)
     
     for idx, w in enumerate(words):
         if w in sentence_words:

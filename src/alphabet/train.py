@@ -1,6 +1,6 @@
 from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
 from src.alphabet.model import FeedForwardConfig, FeedForward
-import random, torch, json, time, os
+import torch, numpy, json, time, os
 
 class train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
@@ -53,20 +53,8 @@ class train:
         # Train and test splits
         data = []
         for x, y in xy:
-            x_encode = one_hot_encoding(x, self.vocab)
-            y_encode = self.classes.index(y)
-            data.append((x_encode, y_encode))
-        random.shuffle(data)
+            data.append((one_hot_encoding(x, self.vocab), self.classes.index(y)))
 
-        data = torch.stack(
-            [
-                torch.cat((
-                    item[0].clone().detach(),
-                    torch.tensor([item[1]])
-                ))
-                for item in data
-            ]
-        )
         n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]
@@ -80,13 +68,9 @@ class train:
     def get_batch(self, split):
         # generate a small batch of data of inputs x and targets y
         data = self.train_data if split == 'train' else self.val_data
-        x, y = data[:, 0], data[:, 1]
-
-        # randomly sample indices for the batch
-        i = torch.randperm(len(data))[:self.batch_size]
-
-        # select data points using the sampled indices
-        x, y = x[i], y[i]
+        ix = torch.randint(len(data) - 1, (self.batch_size,))
+        x = torch.stack([torch.tensor(data[i][0]) for i in ix])
+        y = torch.stack([torch.tensor(data[i][1]) for i in ix])
         x, y = x.to(self.device), y.to(self.device)
         return x, y
 
