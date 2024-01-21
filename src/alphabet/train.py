@@ -2,7 +2,7 @@ from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
 from src.alphabet.model import FeedForwardConfig, FeedForward
 import torch, numpy, json, time, os
 
-class train:
+class atrain:
     def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
         # hyperparameters
         self.n_hidden = n_hidden

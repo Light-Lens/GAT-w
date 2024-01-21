@@ -2,7 +2,7 @@ from src.write.utils import encode, decode
 from src.write.model import GPTConfig, GPT
 import torch
 
-class sample:
+class wsample:
     def __init__(self, model_path):
         # Load the saved model
         model_data = torch.load(model_path)

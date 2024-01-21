@@ -1,41 +1,62 @@
-from src.alphabet.train import train
-from src.alphabet.sample import sample
+from src.alphabet.train import atrain
+from src.alphabet.sample import asample
+from src.write.train import wtrain
+from src.write.sample import wsample
+import time
 
-# T1 = train(
-#     n_layer = 2,
-#     n_hidden = 2,
-#     lr = 1e-3,
-#     batch_size = 32,
-# )
+# ChatGPT like print effect.
+# dprint -> delay print
+def dprint(text, delay=0.001):
+    for char in text:
+        print(char, end="", flush=True)
+        time.sleep(delay)
+    print()
 
-# T1.preprocess("data\\and.json", metadata=("and", "bool", "patterns"), data_division=0.9)
-# T1.train(
-#     n_steps = 5000,
-#     eval_interval = 500,
-#     eval_iters = 500
-# )
+T1 = atrain(
+    n_layer = 1,
+    n_hidden = 1,
+    lr = 1e-2,
+    batch_size = 32,
+)
 
-# T1.save("models\\and.pth")
+T1.preprocess("data\\and.json", metadata=("and", "bool", "patterns"))
+T1.train(
+    n_steps = 5000,
+    eval_interval = 500,
+    eval_iters = 500
+)
 
-S1 = sample("models\\and.pth")
+T1.save("models\\and.pth")
+
+S1 = asample("models\\and.pth")
 S1.load()
-print(S1.predict("I guess you don't know yesterday with me and nither you know why I made that."))
-print(S1.predict("may you please delete this file and also hit some song on spotify"))
+print(S1.predict("open Google chrome and Can you please search google for me?"))
+print(S1.predict("What is a game engine?"))
+print(S1.predict("please search on google What is a game engine?"))
+print(S1.predict("Google Chrome"))
+print(S1.predict("Please start Unity game engine for me please"))
+print(S1.predict("open youtube.com please"))
+print(S1.predict("if you don't mind would you please search google about shahrukh khan"))
+print(S1.predict("how to start a youtube channel"))
+print(S1.predict("what is the capital of paris"))
+print(S1.predict("please search on google what is the capital of paris"))
+print(S1.predict("reload this PC, it needs some"))
+print(S1.predict("i'm gonna be away for a while, please lock this pc"))
+print(S1.predict("shutdown my workstation please"))
+print(S1.predict("shutdown google chrome"))
+print(S1.predict("kill this app"))
+print(S1.predict("tell me current date please"))
+print(S1.predict("tell me today's time"))
+print(S1.predict("is it monday today?"))
+print(S1.predict("9 AM?"))
+print(S1.predict("Please start Unity game engine for me please"))
+print(S1.predict("start chrome.exe"))
+print(S1.predict("You know yesterday I was playing a game and I lost it :("))
+print(S1.predict("How do you make a game engine and remember to make it in c++"))
+print(S1.predict("open chrome and search on the internet How do you make a game engine"))
 
-# from src.write.train import train
-# from src.write.sample import sample
-# import time
-
-# # ChatGPT like print effect.
-# # dprint -> delay print
-# def dprint(text, delay=0.001):
-#     for char in text:
-#         print(char, end="", flush=True)
-#         time.sleep(delay)
-#     print()
-
-# # Train the model.
-# T1 = train(
+# Train the model.
+# T1 = wtrain(
 #     batch_size = 64,
 #     block_size = 1024,
 #     lr = 2e-3,
@@ -54,8 +75,8 @@ print(S1.predict("may you please delete this file and also hit some song on spot
 
 # T1.save("models\\GAT-w2.pth")
 
-# # # Use the model
-# S1 = sample("models\\GAT-w2.pth")
+# # Use the model
+# S1 = wsample("models\\GAT-w2.pth")
 # S1.load()
 
 # dprint(S1.generate("", length=50))
