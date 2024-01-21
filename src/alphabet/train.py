@@ -1,6 +1,6 @@
 from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
 from src.alphabet.model import FeedForwardConfig, FeedForward
-import torch, json, time, os
+import random, torch, json, time, os
 
 class train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
@@ -56,12 +56,17 @@ class train:
             x_encode = one_hot_encoding(x, self.vocab)
             y_encode = self.classes.index(y)
             data.append((x_encode, y_encode))
+        random.shuffle(data)
 
-        # x_data = torch.stack([torch.tensor(x) for x, _ in data])
-        # y_data = torch.stack([torch.tensor(y) for _, y in data])
-        # data = torch.stack([x_data, y_data], dim=1)
-
-        data = torch.stack([torch.cat((torch.tensor(item[0]), torch.tensor([item[1]]))) for item in data])
+        data = torch.stack(
+            [
+                torch.cat((
+                    item[0].clone().detach(),
+                    torch.tensor([item[1]])
+                ))
+                for item in data
+            ]
+        )
         n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]
