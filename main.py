@@ -40,17 +40,17 @@ def dprint(text, delay=0.001):
 
 # Train the model
 classify = atrain(
-    n_layer = 1,
+    n_layer = 4,
     n_hidden = 1,
-    lr = 1e-2,
-    batch_size = 32,
+    lr = 1e-3,
+    batch_size = 4,
 )
 
 classify.preprocess("data\\and.json", metadata=("and", "bool", "patterns"))
 classify.train(
-    n_steps = 5000,
-    eval_interval = 500,
-    eval_iters = 500
+    n_steps = 500,
+    eval_interval = 100,
+    eval_iters = 200
 )
 
 classify.save("models\\and.pth")
