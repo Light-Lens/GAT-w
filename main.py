@@ -40,15 +40,16 @@ def dprint(text, delay=0.001):
 
 # Train the model
 classify = atrain(
-    n_layer = 4,
-    n_hidden = 1,
+    n_layer = 3,
+    n_hidden = 2,
     lr = 1e-3,
-    batch_size = 4,
+    batch_size = 32,
 )
 
-classify.preprocess("data\\and.json", metadata=("and", "bool", "patterns"))
+# TODO: Remove data_division from alphabet.
+classify.preprocess("data\\and.json", metadata=("and", "bool", "patterns"), data_division=0.5)
 classify.train(
-    n_steps = 500,
+    n_steps = 2000,
     eval_interval = 100,
     eval_iters = 200
 )
