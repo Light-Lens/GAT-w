@@ -1,5 +1,5 @@
 from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
-from src.alphabet.model import FeedForwardConfig, FeedForward
+from src.alphabet.model import RNNConfig, RNN
 import torch
 
 class Sample:
@@ -16,13 +16,13 @@ class Sample:
 
     def load(self):
         # set hyperparameters
-        FeedForwardConfig.n_layer = self.n_layer
-        FeedForwardConfig.n_hidden = self.n_hidden
-        FeedForwardConfig.input_size = len(self.vocab)
-        FeedForwardConfig.output_size = len(self.classes)
+        RNNConfig.n_layer = self.n_layer
+        RNNConfig.n_hidden = self.n_hidden
+        RNNConfig.input_size = len(self.vocab)
+        RNNConfig.output_size = len(self.classes)
 
         # create an instance of FeedForward network
-        self.model = FeedForward()
+        self.model = RNN()
 
         # load the saved model state_dict
         self.model.load_state_dict(self.state_dict)

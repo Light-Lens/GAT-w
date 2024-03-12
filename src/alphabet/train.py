@@ -1,5 +1,5 @@
 from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
-from src.alphabet.model import FeedForwardConfig, FeedForward
+from src.alphabet.model import RNNConfig, RNN
 import torch, json, time, os
 
 class Train:
@@ -86,13 +86,13 @@ class Train:
         """
 
         # set hyperparameters
-        FeedForwardConfig.n_layer = self.n_layer
-        FeedForwardConfig.n_hidden = self.n_hidden
-        FeedForwardConfig.input_size = len(self.vocab)
-        FeedForwardConfig.output_size = len(self.classes)
+        RNNConfig.n_layer = self.n_layer
+        RNNConfig.n_hidden = self.n_hidden
+        RNNConfig.input_size = len(self.vocab)
+        RNNConfig.output_size = len(self.classes)
 
         # create an instance of FeedForward network
-        self.model = FeedForward()
+        self.model = RNN()
         m = self.model.to(self.device)
         # print the number of parameters in the model
         print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
