@@ -2,7 +2,7 @@ from src.write.model import GPTConfig, GPT
 from src.write.utils import encode
 import torch, time, os
 
-class wtrain:
+class Train:
     def __init__(self, n_layer, n_embd, n_head, lr, dropout, block_size, batch_size, device="auto"):
         # hyperparameters
         self.n_layer = n_layer

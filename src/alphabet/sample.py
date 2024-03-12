@@ -2,7 +2,7 @@ from src.alphabet.utils import one_hot_encoding, stop_words, tokenize
 from src.alphabet.model import FeedForwardConfig, FeedForward
 import torch
 
-class asample:
+class Sample:
     def __init__(self, model_path):
         # Load the saved model
         model_data = torch.load(model_path)
