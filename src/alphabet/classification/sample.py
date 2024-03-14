@@ -1,4 +1,4 @@
-from ...utils import one_hot_encoding, stop_words, tokenize
+from ...utils import one_hot_encoding, remove_special_chars, tokenize
 from ...models.RNN import RNNConfig, RNN
 import torch
 
@@ -31,7 +31,7 @@ class Sample:
 
     # use the model for classification or other tasks
     def predict(self, text):
-        sentence = stop_words(tokenize(text))
+        sentence = remove_special_chars(tokenize(text))
 
         X = one_hot_encoding(sentence, self.vocab)
         X = X.reshape(1, X.shape[0])

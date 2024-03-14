@@ -1,4 +1,4 @@
-from ...utils import one_hot_encoding, stop_words, tokenize
+from ...utils import one_hot_encoding, remove_special_chars, tokenize
 from ...models.RNN import RNNConfig, RNN
 import torch, json, time, os
 
@@ -39,8 +39,8 @@ class Train:
                 self.vocab.extend(tokenized_words)
                 xy.append((tokenized_words, y_encode))
 
-        # Stem, lower each word and remove stop words
-        self.vocab = stop_words(self.vocab)
+        # Lemmatize, lower each word and remove unnecessary chars.
+        self.vocab = remove_special_chars(self.vocab)
 
         # Remove duplicates and sort
         self.vocab = sorted(set(self.vocab))
