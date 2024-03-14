@@ -15,11 +15,10 @@ class Train:
         # print the device
         print("Training on", self.device)
 
-    def preprocess(self, filepath, metadata, data_division=0.8):
+    def preprocess(self, filepath, metadata):
         """
         @param filepath: the location of the json file.
         @param metadata: (classname, tagname, pattern_name)
-        @param data_division: split the dataset into train and val data
         """
 
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -47,40 +46,34 @@ class Train:
         self.classes = sorted(set(self.classes))
 
         # Train and test splits
-        data = []
+        self.train_data = []
         for x, y in xy:
-            data.append((one_hot_encoding(x, self.vocab), self.classes.index(y)))
-
-        n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
-        self.train_data = data[:n]
-        self.val_data = data[n:]
+            self.train_data.append((one_hot_encoding(x, self.vocab), self.classes.index(y)))
 
         # print the number of tokens
         print(len(xy)/1e6, "M total tokens")
         print(len(self.vocab), "vocab size,", len(self.classes), "output size,")
-        print(len(self.train_data)/1e6, "M train data,", len(self.val_data)/1e6, "M test data")
+        print(len(self.train_data)/1e6, "M train data")
 
     # data loading
-    def get_batch(self, split):
+    def get_batch(self):
         # generate a small batch of data of inputs x and targets y
-        data = self.train_data if split == 'train' else self.val_data
-        ix = torch.randint(len(data) - 1, (self.batch_size,))
-        x = torch.stack([torch.tensor(data[i][0]) for i in ix])
-        y = torch.stack([torch.tensor(data[i][1]) for i in ix])
+        ix = torch.randint(len(self.train_data) - 1, (self.batch_size,))
+        x = torch.stack([torch.tensor(self.train_data[i][0]) for i in ix])
+        y = torch.stack([torch.tensor(self.train_data[i][1]) for i in ix])
         x, y = x.to(self.device), y.to(self.device)
         return x, y
 
     @torch.no_grad()
     def estimate_loss(self, eval_iters):
-        out = {}
+        out = None
         self.model.eval()
-        for split in ['train', 'val']:
-            losses = torch.zeros(eval_iters)
-            for k in range(eval_iters):
-                X, Y = self.get_batch(split)
-                output, loss = self.model(X, Y)
-                losses[k] = loss.item()
-            out[split] = losses.mean()
+        losses = torch.zeros(eval_iters)
+        for k in range(eval_iters):
+            X, Y = self.get_batch()
+            _, loss = self.model(X, Y)
+            losses[k] = loss.item()
+        out = losses.mean()
         self.model.train()
         return out
 
@@ -116,13 +109,13 @@ class Train:
             try:
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
                     losses = self.estimate_loss(eval_iters)
-                    print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+                    print(f"step [{iter + 1}/{n_steps}]: train loss {losses:.4f}")
 
                 # sample a batch of data
-                xb, yb = self.get_batch('train')
+                xb, yb = self.get_batch()
 
                 # evaluate the loss
-                out, loss = self.model(xb, yb)
+                _, loss = self.model(xb, yb)
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
