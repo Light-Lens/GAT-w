@@ -9,7 +9,6 @@ class Sample:
 
         self.state_dict = model_data["state_dict"]
         self.vocab = model_data["vocab"]
-        self.outputs = [0, 1]
         self.device = model_data["device"]
         self.n_hidden = model_data["config"]["n_hidden"]
         self.n_layer = model_data["config"]["n_layer"]
@@ -19,7 +18,7 @@ class Sample:
         RNNConfig.n_layer = self.n_layer
         RNNConfig.n_hidden = self.n_hidden
         RNNConfig.input_size = len(self.vocab)
-        RNNConfig.output_size = len(self.outputs)
+        RNNConfig.output_size = len(self.vocab)
 
         # create an instance of FeedForward network
         self.model = RNN()
@@ -37,4 +36,4 @@ class Sample:
         X = X.reshape(1, X.shape[0])
         X = torch.tensor(X).to(self.device)
 
-        return self.model.predict(X, self.outputs)
+        return self.model.predict(X, self.vocab)
