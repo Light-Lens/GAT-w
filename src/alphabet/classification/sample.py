@@ -1,5 +1,5 @@
-from .utils import one_hot_encoding, stop_words, tokenize
-from .model import RNNConfig, RNN
+from ...utils import one_hot_encoding, stop_words, tokenize
+from ...models.RNN import RNNConfig, RNN
 import torch
 
 class Sample:
