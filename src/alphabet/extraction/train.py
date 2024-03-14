@@ -26,16 +26,15 @@ class Train:
             jsondata = json.load(f)
 
         classname, pattern_name, output_name = metadata
-        # The output list will contain either 0 or 1,
-        # for example: ['Please', 'start', 'Google', 'Chrome'] -> [0, 0, 1, 1]
-        # self.output = [0, 1]
         self.vocab = []
         xy = [] # x: pattern, y: output
 
         for intent in jsondata[classname]:
-            tokenized_words = tokenize(intent[pattern_name])
-            self.vocab.extend(tokenized_words)
-            xy.append((tokenized_words, intent[output_name]))
+            tokenized_pattern = tokenize(intent[pattern_name])
+            tokenized_output = tokenize(intent[output_name])
+
+            self.vocab.extend(tokenized_pattern)
+            xy.append((tokenized_pattern, tokenized_output))
 
         # Lemmatize, lower each word and remove unnecessary chars.
         self.vocab = remove_special_chars(self.vocab)
@@ -49,7 +48,7 @@ class Train:
             data.append(
                 (
                     one_hot_encoding(x, self.vocab),
-                    numpy.array(y, dtype=numpy.float32)
+                    one_hot_encoding(y, self.vocab),
                 )
             )
 
@@ -58,7 +57,7 @@ class Train:
         self.val_data = data[n:]
 
         # print the number of tokens
-        print(len(xy)/1e6, "M total tokens,", len(self.vocab), "vocab size")
+        print(len(xy)/1e6, "M total tokens,", len(self.vocab), "input-output size")
         print(len(self.train_data)/1e6, "M train data,", len(self.val_data)/1e6, "M test data")
 
     # data loading
