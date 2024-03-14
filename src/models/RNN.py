@@ -21,7 +21,6 @@ class RNN(nn.Module):
         out, _ = self.rnn(x)
 
         # Squeeze the dimensions to remove the batch_first dimension
-        # out = out.squeeze(1)
         out = self.fc(out)
 
         # Calculate loss
