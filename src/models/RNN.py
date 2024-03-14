@@ -15,13 +15,13 @@ class RNN(nn.Module):
         #Defining the layers
         self.rnn = nn.RNN(RNNConfig.input_size, RNNConfig.n_hidden, RNNConfig.n_layer, batch_first=True) # RNN Layer
         self.fc = nn.Linear(RNNConfig.n_hidden, RNNConfig.output_size) # Fully connected layer
-    
+
     def forward(self, x, targets=None):
         # Apply RNN layer
         out, _ = self.rnn(x)
 
         # Squeeze the dimensions to remove the batch_first dimension
-        out = out.squeeze(1)
+        # out = out.squeeze(1)
         out = self.fc(out)
 
         # Calculate loss

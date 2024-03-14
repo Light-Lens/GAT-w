@@ -1,6 +1,6 @@
 from ...utils import one_hot_encoding, remove_special_chars, tokenize
 from ...models.RNN import RNNConfig, RNN
-import torch, numpy, json, time, os
+import torch, json, time, os
 
 class Train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
@@ -78,7 +78,7 @@ class Train:
             losses = torch.zeros(eval_iters)
             for k in range(eval_iters):
                 X, Y = self.get_batch(split)
-                output, loss = self.model(X, Y)
+                _, loss = self.model(X, Y)
                 losses[k] = loss.item()
             out[split] = losses.mean()
         self.model.train()
@@ -97,7 +97,7 @@ class Train:
         RNNConfig.n_layer = self.n_layer
         RNNConfig.n_hidden = self.n_hidden
         RNNConfig.input_size = len(self.vocab)
-        RNNConfig.output_size = 2
+        RNNConfig.output_size = len(self.vocab)
 
         # create an instance of FeedForward network
         self.model = RNN()
