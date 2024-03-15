@@ -1,13 +1,6 @@
-from ...utils import remove_special_chars, tokenize, encode
-from ...models.RNN import RNNConfig, RNN
+from ..utils import one_hot_encoding, remove_special_chars, tokenize
+from ..models.FeedForward import FeedForwardConfig, FeedForward
 import torch, json, time, os
-
-class RNNForTextExtraction(RNN):
-    def predict(self, x):
-        out, _ = self(x)
-        prob = torch.softmax(out[-1], dim=0).data
-        # Taking the class with the highest probability score from the output
-        return torch.max(prob, dim=0)[1].item()
 
 class Train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
@@ -25,74 +18,64 @@ class Train:
     def preprocess(self, filepath, metadata):
         """
         @param filepath: the location of the json file.
-        @param metadata: (classname, pattern_name, desired_output_name)
+        @param metadata: (classname, tagname, pattern_name)
         """
 
         with open(filepath, 'r', encoding='utf-8') as f:
             jsondata = json.load(f)
 
-        classname, pattern_name, output_name = metadata
+        classname, tagname, pattern_name = metadata
+        self.classes = []
+        self.vocab = []
+        xy = [] # x: pattern, y: tag
 
-        # Prepare vocab
-        vocab = ["<sep>", "<end>", " "]
-        xy = []
         for intent in jsondata[classname]:
-            pattern = intent[pattern_name]
-            vocab.extend(pattern)
+            y_encode = f"{classname};{intent[tagname]}"
+            self.classes.append(y_encode)
 
-            data = []
-            data.extend(remove_special_chars(pattern))
-            data.append("<sep>")
-            data.extend(remove_special_chars(intent[output_name]))
-            data.append("<end>")
-            xy.append(data)
+            for pattern in intent[pattern_name]:
+                tokenized_words = tokenize(pattern)
+                self.vocab.extend(tokenized_words)
+                xy.append((tokenized_words, y_encode))
 
-        # here are all the unique characters that occur in this text
-        vocab = sorted(list(set(vocab)))
+        # Lemmatize, lower each word and remove unnecessary chars.
+        self.vocab = remove_special_chars(self.vocab)
 
-        # create a mapping from characters to integers
-        self.stoi = { ch:i for i,ch in enumerate(vocab) }
-        self.itos = { i:ch for i,ch in enumerate(vocab) }
+        # Remove duplicates and sort
+        self.vocab = sorted(set(self.vocab))
+        self.classes = sorted(set(self.classes))
 
-        # Padding
-        # A simple loop that loops through the list of sentences and adds a ' ' whitespace until the length of the sentence matches
-        # the length of the longest sentence
-        maxlen = len(max(xy, key=len))
-        self.input_size = maxlen - 1
-        for i in range(len(xy)):
-            while len(xy[i]) < maxlen:
-                xy[i].append("<end>")
-
-        # Prepare training data
+        # Train and test splits
         self.train_data = []
-        for i in xy:
-            self.train_data.append(torch.tensor(encode(i, stoi=self.stoi), dtype=torch.float32))
+        for x, y in xy:
+            self.train_data.append((one_hot_encoding(x, self.vocab), self.classes.index(y)))
 
         # print the number of tokens
-        print(self.input_size, "input-output size")
+        print(len(xy)/1e6, "M total tokens")
+        print(len(self.vocab), "vocab size,", len(self.classes), "output size,")
         print(len(self.train_data)/1e6, "M train data")
 
     # data loading
     def get_batch(self):
         # generate a small batch of data of inputs x and targets y
         ix = torch.randint(len(self.train_data) - 1, (self.batch_size,))
-        x = torch.stack([self.train_data[i][:-1] for i in ix])
-        y = torch.stack([self.train_data[i][1:] for i in ix])
+        x = torch.stack([torch.tensor(self.train_data[i][0]) for i in ix])
+        y = torch.stack([torch.tensor(self.train_data[i][1]) for i in ix])
         x, y = x.to(self.device), y.to(self.device)
         return x, y
 
     @torch.no_grad()
     def estimate_loss(self, eval_iters):
-        loss_mean = None
+        out = None
         self.model.eval()
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
             X, Y = self.get_batch()
-            out, loss = self.model(X, Y)
+            _, loss = self.model(X, Y)
             losses[k] = loss.item()
-        loss_mean = losses.mean()
+        out = losses.mean()
         self.model.train()
-        return loss_mean
+        return out
 
     def train(self, n_steps, eval_interval, eval_iters, checkpoint_interval=0, checkpoint_path=""):
         """
@@ -104,13 +87,13 @@ class Train:
         """
 
         # set hyperparameters
-        RNNConfig.n_layer = self.n_layer
-        RNNConfig.n_hidden = self.n_hidden
-        RNNConfig.input_size = self.input_size
-        RNNConfig.output_size = self.input_size
+        FeedForwardConfig.n_layer = self.n_layer
+        FeedForwardConfig.n_hidden = self.n_hidden
+        FeedForwardConfig.input_size = len(self.vocab)
+        FeedForwardConfig.output_size = len(self.classes)
 
         # create an instance of FeedForward network
-        self.model = RNNForTextExtraction()
+        self.model = FeedForward()
         m = self.model.to(self.device)
         # print the number of parameters in the model
         print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
@@ -132,7 +115,7 @@ class Train:
                 xb, yb = self.get_batch()
 
                 # evaluate the loss
-                out, loss = self.model(xb, yb)
+                _, loss = self.model(xb, yb)
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
@@ -154,13 +137,12 @@ class Train:
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
-                "stoi": self.stoi,
-                "itos": self.itos,
+                "vocab": self.vocab,
+                "classes": self.classes,
                 "device": self.device,
                 "config": {
                     "n_hidden": self.n_hidden,
-                    "n_layer": self.n_layer,
-                    "input_size": self.input_size
+                    "n_layer": self.n_layer
                 }
             },
             savepath

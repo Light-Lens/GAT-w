@@ -1,5 +1,5 @@
-from ...utils import one_hot_encoding, remove_special_chars, tokenize
-from ...models.FeedForward import FeedForwardConfig, FeedForward
+from ..utils import one_hot_encoding, remove_special_chars, tokenize
+from ..models.FeedForward import FeedForwardConfig, FeedForward
 import torch
 
 class Sample:
