@@ -1,4 +1,4 @@
-from ...utils import remove_special_chars, one_hot_encoding, tokenize
+from ...utils import remove_special_chars, tokenize, encode, decode
 from ...models.RNN import RNNConfig
 from .train import RNNForTextExtraction
 import torch
@@ -9,17 +9,19 @@ class Sample:
         model_data = torch.load(model_path)
 
         self.state_dict = model_data["state_dict"]
-        self.vocab = model_data["vocab"]
+        self.stoi = model_data["stoi"]
+        self.itos = model_data["itos"]
         self.device = model_data["device"]
         self.n_hidden = model_data["config"]["n_hidden"]
         self.n_layer = model_data["config"]["n_layer"]
+        self.input_size = model_data["config"]["input_size"]
 
     def load(self):
         # set hyperparameters
         RNNConfig.n_layer = self.n_layer
         RNNConfig.n_hidden = self.n_hidden
-        RNNConfig.input_size = len(self.vocab)
-        RNNConfig.output_size = len(self.vocab)
+        RNNConfig.input_size = self.input_size
+        RNNConfig.output_size = self.input_size
 
         # create an instance of FeedForward network
         self.model = RNNForTextExtraction()
@@ -36,11 +38,7 @@ class Sample:
 
         # Now pass in the previous characters and get a new one
         for _ in range(size):
-            X = one_hot_encoding(sentence, self.vocab)
-            X = X.reshape(1, X.shape[0])
-            X = torch.tensor(X).to(self.device)
-
-            out = self.model.predict(X, self.vocab)
-            sentence.append(out)
+            X = torch.tensor(encode(sentence, stoi=self.stoi), dtype=torch.float32, device=self.device).unsqueeze(0)
+            sentence.append(decode(self.model.predict(X), itos=self.itos))
         
         return sentence
