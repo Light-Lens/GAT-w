@@ -1,9 +1,16 @@
 from ..utils import one_hot_encoding, remove_special_chars, tokenize
 from ..models.FeedForward import FeedForwardConfig, FeedForward
+from ..models.RNN import RNNConfig, RNN
 import torch, json, time, os
 
 class Train:
-    def __init__(self, n_layer, n_hidden, lr, batch_size, device="auto"):
+    def __init__(self, n_layer, n_hidden, lr, batch_size, model="FeedForward", device="auto"):
+        """
+        @param n_layer: Number of layers
+        @param n_hidden: Hidden size
+        @param lr: Learning rate
+        @param model: Model architecture to train on. [FeedForward, RNN] (default: FeedForward)
+        """
         # hyperparameters
         self.n_hidden = n_hidden
         self.n_layer = n_layer
@@ -11,6 +18,7 @@ class Train:
         self.learning_rate = lr
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
         self.device = ("cuda" if torch.cuda.is_available() else "cpu") if device == "auto" else device
+        self.model_architecture = model
 
         # print the device
         print("Training on", self.device)
@@ -87,13 +95,27 @@ class Train:
         """
 
         # set hyperparameters
-        FeedForwardConfig.n_layer = self.n_layer
-        FeedForwardConfig.n_hidden = self.n_hidden
-        FeedForwardConfig.input_size = len(self.vocab)
-        FeedForwardConfig.output_size = len(self.classes)
+        if self.model_architecture == "FeedForward":
+            FeedForwardConfig.n_layer = self.n_layer
+            FeedForwardConfig.n_hidden = self.n_hidden
+            FeedForwardConfig.input_size = len(self.vocab)
+            FeedForwardConfig.output_size = len(self.classes)
 
-        # create an instance of FeedForward network
-        self.model = FeedForward()
+            # create an instance of FeedForward network
+            self.model = FeedForward()
+
+        elif self.model_architecture == "RNN":
+            RNNConfig.n_layer = self.n_layer
+            RNNConfig.n_hidden = self.n_hidden
+            RNNConfig.input_size = len(self.vocab)
+            RNNConfig.output_size = len(self.classes)
+
+            # create an instance of RNN network
+            self.model = RNN()
+
+        else:
+            raise f"{self.model_architecture}: Invalid model architecture.\nAvailable architectures are FeedForward, RNN"
+
         m = self.model.to(self.device)
         # print the number of parameters in the model
         print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
@@ -137,6 +159,7 @@ class Train:
         torch.save(
             {
                 "state_dict": self.model.state_dict(),
+                "model": self.model_architecture,
                 "vocab": self.vocab,
                 "classes": self.classes,
                 "device": self.device,

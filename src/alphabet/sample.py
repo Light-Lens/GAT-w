@@ -1,5 +1,6 @@
 from ..utils import one_hot_encoding, remove_special_chars, tokenize
 from ..models.FeedForward import FeedForwardConfig, FeedForward
+from ..models.RNN import RNNConfig, RNN
 import torch
 
 class Sample:
@@ -9,6 +10,7 @@ class Sample:
 
         self.state_dict = model_data["state_dict"]
         self.vocab = model_data["vocab"]
+        self.model_architecture = model_data["model"]
         self.classes = model_data["classes"]
         self.device = model_data["device"]
         self.n_hidden = model_data["config"]["n_hidden"]
@@ -16,13 +18,26 @@ class Sample:
 
     def load(self):
         # set hyperparameters
-        FeedForwardConfig.n_layer = self.n_layer
-        FeedForwardConfig.n_hidden = self.n_hidden
-        FeedForwardConfig.input_size = len(self.vocab)
-        FeedForwardConfig.output_size = len(self.classes)
+        if self.model_architecture == "FeedForward":
+            FeedForwardConfig.n_layer = self.n_layer
+            FeedForwardConfig.n_hidden = self.n_hidden
+            FeedForwardConfig.input_size = len(self.vocab)
+            FeedForwardConfig.output_size = len(self.classes)
 
-        # create an instance of FeedForward network
-        self.model = FeedForward()
+            # create an instance of FeedForward network
+            self.model = FeedForward()
+
+        elif self.model_architecture == "RNN":
+            RNNConfig.n_layer = self.n_layer
+            RNNConfig.n_hidden = self.n_hidden
+            RNNConfig.input_size = len(self.vocab)
+            RNNConfig.output_size = len(self.classes)
+
+            # create an instance of RNN network
+            self.model = RNN()
+
+        else:
+            raise f"{self.model_architecture}: Invalid model architecture.\nAvailable architectures are FeedForward, RNN"
 
         # load the saved model state_dict
         self.model.load_state_dict(self.state_dict)
