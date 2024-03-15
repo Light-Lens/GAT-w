@@ -70,7 +70,7 @@ class Train:
         # print the number of tokens
         print(len(xy)/1e6, "M total tokens")
         print(len(self.vocab), "vocab size,", len(self.classes), "output size,")
-        print(len(self.train_data)/1e6, "M train data", len(self.val_data)/1e6, "M test data", ", (data division is disabled)" if data_division == None else "")
+        print(len(self.train_data)/1e6, "M train data,", len(self.val_data)/1e6, "M test data", "(data division is disabled)" if data_division == None else "")
 
     # data loading
     def get_batch(self, split):
