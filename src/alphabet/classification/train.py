@@ -60,7 +60,6 @@ class Train:
         if data_division == None:
             self.train_data = data[:]
             self.val_data = data[:]
-            print(len(self.train_data)/1e6, "M train data")
 
         else:
             n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
