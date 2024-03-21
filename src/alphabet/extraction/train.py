@@ -21,11 +21,12 @@ class Train:
         # print the device
         print("Training on", self.device)
 
-    def preprocess(self, filepath, metadata, data_division=0.8):
+    def preprocess(self, filepath, metadata, data_division:float=0.8, data_augmentation:float=0):
         """
         @param filepath: the location of the json file.
         @param metadata: (classname, tagname, pattern_name)
-        @param data_division: if None then only train otherwise train and test (between: 0 and 1) (default: 0.8)
+        @param data_division (float): if None then only train otherwise train and test (between: 0 and 1) (default: 0.8)
+        @param data_augmentation (float): Duplicate a certain percentage of the original dataset during runtime (between: 0 and 1) (default: 0)
         """
         pass
 
