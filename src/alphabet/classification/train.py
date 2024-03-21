@@ -58,19 +58,19 @@ class Train:
 
         # Create dataset for training
         data = [(one_hot_encoding(x, self.vocab), self.classes.index(y)) for x, y in xy]
+        random.shuffle(data)
 
         # Augment the dataset.
         if 0 <= data_augmentation <= 1:
-            duplicated_data = data[:]
-            random.shuffle(duplicated_data)
-
             n = int(data_augmentation * len(data)) # the first (data_augmentation * 100)% will be duplicated
-            data += duplicated_data[:n]
+            data += data[:n]
+            random.shuffle(data)
 
         # Train and test splits
         if data_division == None or data_division <= 0:
             self.train_data = data[:]
             self.val_data = data[:]
+            random.shuffle(self.val_data)
 
         else:
             n = int(data_division * len(data)) # the first (data_division * 100)% will be train, rest val
