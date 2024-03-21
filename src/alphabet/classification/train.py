@@ -95,13 +95,14 @@ class Train:
         self.model.train()
         return out
 
-    def train(self, n_steps, eval_interval, eval_iters, checkpoint_interval=0, checkpoint_path=""):
+    def train(self, n_steps, eval_interval, eval_iters, checkpoint_interval=0, checkpoint_path="", n_loss_digits=4):
         """
         @param n_steps: number of Epochs to train the model for
         @param eval_interval: the interval between each loss evaluation
         @param eval_iters: the iterations for each loss evaluation
-        @param checkpoint_interval: the interval between each checkpoint save
-        @param checkpoint_path: the save path for the checkpoint
+        @param checkpoint_interval: the interval between each checkpoint save (default: 0)
+        @param checkpoint_path: the save path for the checkpoint (default: empty string)
+        @param n_loss_digits: Number of digits of train and val loss printed (default: 4)
         """
 
         # set hyperparameters
@@ -141,7 +142,7 @@ class Train:
             try:
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
                     losses = self.estimate_loss(eval_iters)
-                    print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+                    print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.{n_loss_digits}f}, val loss {losses['val']:.{n_loss_digits}f}")
 
                 # sample a batch of data
                 xb, yb = self.get_batch("train")
