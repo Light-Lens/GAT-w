@@ -1,7 +1,7 @@
 from ...utils import one_hot_encoding, remove_special_chars, tokenize
 from ...models.FeedForward import FeedForwardConfig, FeedForward
 from ...models.RNN import RNNConfig, RNN
-import torch, json, time, os
+import random, torch, json, time, os
 
 class Train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, model="FeedForward", device="auto"):
@@ -24,11 +24,12 @@ class Train:
         # print the device
         print("Training on", self.device)
 
-    def preprocess(self, filepath, metadata, data_division=0.8):
+    def preprocess(self, filepath, metadata, data_division:float=0.8, data_augmentation:float=0):
         """
         @param filepath: the location of the json file.
         @param metadata: (classname, tagname, pattern_name)
-        @param data_division: if None then only train otherwise train and test (between: 0 and 1) (default: 0.8)
+        @param data_division (float): if None then only train otherwise train and test (between: 0 and 1) (default: 0.8)
+        @param data_augmentation (float): Duplicate a certain percentage of the original dataset during runtime (between: 0 and 1) (default: 0)
         """
 
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -55,9 +56,19 @@ class Train:
         self.vocab = sorted(set(self.vocab))
         self.classes = sorted(set(self.classes))
 
-        # Train and test splits
+        # Create dataset for training
         data = [(one_hot_encoding(x, self.vocab), self.classes.index(y)) for x, y in xy]
-        if data_division == None:
+
+        # Augment the dataset.
+        if 0 <= data_augmentation <= 1:
+            duplicated_data = data[:]
+            random.shuffle(duplicated_data)
+
+            n = int(data_augmentation * len(data)) # the first (data_augmentation * 100)% will be duplicated
+            data += duplicated_data[:n]
+
+        # Train and test splits
+        if data_division == None or data_division <= 0:
             self.train_data = data[:]
             self.val_data = data[:]
 
@@ -69,7 +80,11 @@ class Train:
         # print the number of tokens
         print(len(xy)/1e6, "M total tokens")
         print(len(self.vocab), "vocab size,", len(self.classes), "output size,")
-        print(len(self.train_data)/1e6, "M train data,", len(self.val_data)/1e6, "M test data", "(data division is disabled)" if data_division == None else "")
+        print(
+            len(self.train_data)/1e6, "M train data,",
+            len(self.val_data)/1e6, "M test data",
+            "(data division is disabled)" if data_division == None or data_division <= 0 else ""
+        )
 
     # data loading
     def get_batch(self, split):
