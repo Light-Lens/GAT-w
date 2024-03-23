@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import torch
 
 class Train:
@@ -17,6 +18,12 @@ class Train:
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
         self.device = ("cuda" if torch.cuda.is_available() else "cpu") if device == "auto" else device
         self.model_architecture = model
+
+        # a dict for keep track of all the losses to be plotted.
+        self.__losses__ = {
+            "train": [],
+            "val": []
+        }
 
         # print the device
         print("Training on", self.device)
@@ -42,3 +49,23 @@ class Train:
 
     def save(self, savepath):
         pass
+
+    def plot(self, savepath):
+        plt.style.use("seaborn-v0_8-dark")
+
+        for param in ['figure.facecolor', 'axes.facecolor', 'savefig.facecolor']:
+            plt.rcParams[param] = '#212946'  # bluish dark grey
+
+        for param in ['text.color', 'axes.labelcolor', 'xtick.color', 'ytick.color']:
+            plt.rcParams[param] = '0.9'  # very light grey
+
+        plt.figure(figsize=(18, 8))
+        plt.plot(self.losses["train"], label="train loss")
+        plt.plot(self.losses["val"], label="val loss")
+
+        plt.xlabel("iteration", fontsize=12)
+        plt.ylabel("value", fontsize=12)
+        plt.legend(fontsize=12)
+        plt.title("train-val loss", fontsize=14)
+        plt.savefig(savepath, bbox_inches="tight")
+        plt.close()

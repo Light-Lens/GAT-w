@@ -2,6 +2,7 @@ from ...utils import one_hot_encoding, remove_special_chars, tokenize
 from ...models.FeedForward import FeedForwardConfig, FeedForward
 from ...models.RNN import RNNConfig, RNN
 import random, torch, json, time, os
+import matplotlib.pyplot as plt
 
 class Train:
     def __init__(self, n_layer, n_hidden, lr, batch_size, model="FeedForward", device="auto"):
@@ -20,6 +21,12 @@ class Train:
         self.batch_size = batch_size # how many independent sequences will we process in parallel?
         self.device = ("cuda" if torch.cuda.is_available() else "cpu") if device == "auto" else device
         self.model_architecture = model
+
+        # a dict for keep track of all the losses to be plotted.
+        self.losses = {
+            "train": [],
+            "val": []
+        }
 
         # print the device
         print("Training on", self.device)
@@ -158,6 +165,8 @@ class Train:
                 if (iter + 1) % eval_interval == 0 or iter == n_steps - 1:
                     losses = self.estimate_loss(eval_iters)
                     print(f"step [{iter + 1}/{n_steps}]: train loss {losses['train']:.{n_loss_digits}f}, val loss {losses['val']:.{n_loss_digits}f}")
+                    self.losses["train"].append(losses['train'])
+                    self.losses["val"].append(losses['val'])
 
                 # sample a batch of data
                 xb, yb = self.get_batch("train")
@@ -196,3 +205,23 @@ class Train:
             },
             savepath
         )
+
+    def plot(self, savepath):
+        plt.style.use("seaborn-v0_8-dark")
+
+        for param in ['figure.facecolor', 'axes.facecolor', 'savefig.facecolor']:
+            plt.rcParams[param] = '#212946'  # bluish dark grey
+
+        for param in ['text.color', 'axes.labelcolor', 'xtick.color', 'ytick.color']:
+            plt.rcParams[param] = '0.9'  # very light grey
+
+        plt.figure(figsize=(18, 8))
+        plt.plot(self.losses["train"], label="train loss")
+        plt.plot(self.losses["val"], label="val loss")
+
+        plt.xlabel("iteration", fontsize=12)
+        plt.ylabel("value", fontsize=12)
+        plt.legend(fontsize=12)
+        plt.title("train-val loss", fontsize=14)
+        plt.savefig(savepath, bbox_inches="tight")
+        plt.close()
