@@ -1,5 +1,5 @@
 from ..models.GPT import GPTConfig, GPT
-from ..utils import encode
+from ..tokenizer.char import encode
 import torch, time, os
 
 class Train:
