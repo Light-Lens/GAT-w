@@ -20,7 +20,7 @@ class Train:
         self.model_architecture = model
 
         # a dict for keep track of all the losses to be plotted.
-        self.__losses__ = {
+        self.losses = {
             "train": [],
             "val": []
         }

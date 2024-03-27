@@ -1,5 +1,5 @@
 from ..models.GPT import GPTConfig, GPT
-from ..tokenizer.char import encode, decode
+from ..utils import encode, decode
 import torch
 
 class Sample:
