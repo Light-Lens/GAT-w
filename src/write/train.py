@@ -1,4 +1,5 @@
 from ..models.GPT import GPTConfig, GPT
+from ..utils import BPE
 from ..utils import encode
 import matplotlib.pyplot as plt
 import torch, time, os
