@@ -2,6 +2,7 @@ from torch.nn import functional as F
 import torch.nn as nn, torch
 
 class RNNConfig:
+    n_embd = 2
     n_hidden = 2
     n_layer = 1
     input_size = None
@@ -12,11 +13,15 @@ class RNN(nn.Module):
     def __init__(self):
         super(RNN, self).__init__()
 
-        #Defining the layers
-        self.rnn = nn.RNN(RNNConfig.input_size, RNNConfig.n_hidden, RNNConfig.n_layer, batch_first=True) # RNN Layer
+        # Defining the layers
+        self.embedding = nn.Embedding(RNNConfig.input_size, RNNConfig.n_hidden)
+        self.rnn = nn.RNN(RNNConfig.n_hidden, RNNConfig.n_hidden, RNNConfig.n_layer, batch_first=True) # RNN Layer
         self.fc = nn.Linear(RNNConfig.n_hidden, RNNConfig.output_size) # Fully connected layer
 
     def forward(self, x, targets=None):
+        # Pass input through the embedding layer
+        x = self.embedding(x)
+
         # Apply RNN layer
         out, _ = self.rnn(x)
 
@@ -27,14 +32,12 @@ class RNN(nn.Module):
         loss = None if targets is None else F.cross_entropy(out, targets)
         return out, loss
 
-    def predict(self, x, classes):
+    def predict(self, x):
         out, _ = self(x)
         _, predicted = torch.max(out, dim=1)
-
-        tag = classes[predicted.item()]
 
         probs = torch.softmax(out, dim=1)
         prob = probs[0][predicted.item()]
         confidence = prob.item()
 
-        return tag, confidence
+        return predicted.item(), confidence

@@ -1,4 +1,6 @@
 """
+# https://youtu.be/zduSFxRajkE
+
 Contains the base Tokenizer class and a few common helper functions.
 The base class also contains the (common) save/load functionality.
 It would be possible to be a lot more strict about the interface and
