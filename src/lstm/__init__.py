@@ -1,3 +1,3 @@
 from .model import LSTMConfig
-from .train import *
-from .sample import *
+from .train import LSTMTrainConfig, train
+from .sample import sample

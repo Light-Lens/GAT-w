@@ -1,3 +1,3 @@
 from .model import RNNConfig
-from .train import *
-from .sample import *
+from .train import RNNTrainConfig, train
+from .sample import sample

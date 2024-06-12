@@ -1,3 +1,3 @@
 from .model import GPTConfig
-from .train import *
-from .sample import *
+from .train import GPTTrainConfig, train
+from .sample import sample
