@@ -11,7 +11,7 @@ def lemmatize(word):
 
 def remove_special_chars(tokens):
     #NOTE: Don't remove [+, -, *, /], because they are math symbols.
-    ignore_chars = '''!{};:'"\,<>?@#$&_~'''
+    ignore_chars = '''!{};:'"\\,<>?@#$&_~'''
     return [word for word in tokens if word not in ignore_chars]
 
 def one_hot_encoding(tokenized_sentence, words):
