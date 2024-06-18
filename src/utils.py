@@ -14,12 +14,21 @@ def remove_special_chars(tokens):
     ignore_chars = '''!{};:'"\\,<>?@#$&_~'''
     return [word for word in tokens if word not in ignore_chars]
 
-def one_hot_encoding(tokenized_sentence, words):
-    sentence_words = set([lemmatize(word) for word in tokenized_sentence])
-    encoding = numpy.zeros(len(words), dtype=numpy.float32)
+# Perform one-hot-encoding on numbers/vectors
+def one_hot_encoding(x, vocab, sent=False):
+    """
+    `x`: (`int` or `str`) -> Either a number or tokenizer sentences
+    'vocab': (list[`int` or `str`]) -> List of numbers or list of all words
+    `sent`: bool -> If true then treat `x` and `vocab` as `str` and `list[str]` respecticely, otherwise treat them as `int` and `list[int]` respecticely
+    """
+
+    if sent:
+        x = set([lemmatize(word) for word in x])
+
+    encoding = numpy.zeros(len(vocab), dtype=numpy.float32)
     
-    for idx, w in enumerate(words):
-        if w in sentence_words:
+    for idx, w in enumerate(vocab):
+        if w in x:
             encoding[idx] = 1
 
     return encoding
