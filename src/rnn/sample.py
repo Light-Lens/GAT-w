@@ -4,15 +4,14 @@ import torch
 class sample:
     def __init__(self, model_path):
         # Load the saved model
-        model_data = torch.load(model_path)
+        self.model_data = torch.load(model_path)
 
-        self.state_dict = model_data["state_dict"]
-        RNNConfig.device = model_data["device"]
-        RNNConfig.input_size = model_data["config"]["input_size"]
-        RNNConfig.output_size = model_data["config"]["output_size"]
-        RNNConfig.n_hidden = model_data["config"]["n_hidden"]
-        RNNConfig.n_embd = model_data["config"]["n_embd"]
-        RNNConfig.n_layer = model_data["config"]["n_layer"]
+        self.state_dict = self.model_data["state_dict"]
+        RNNConfig.device = self.model_data["device"]
+        RNNConfig.input_size = self.model_data["config"]["input_size"]
+        RNNConfig.output_size = self.model_data["config"]["output_size"]
+        RNNConfig.n_hidden = self.model_data["config"]["n_hidden"]
+        RNNConfig.n_layer = self.model_data["config"]["n_layer"]
 
     def load(self):
         # Create an instance of RNN
@@ -28,7 +27,7 @@ class sample:
         X = X.reshape(1, X.shape[0])
         X = torch.tensor(X).to(RNNConfig.device)
 
-        i, confidence = self.model.predict(X, classes)
+        i, confidence = self.model.predict(X)
         tag = classes[i]
 
         return tag, confidence
