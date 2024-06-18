@@ -2,7 +2,6 @@ from torch.nn import functional as F
 import torch.nn as nn, torch
 
 class RNNConfig:
-    n_embd = 2
     n_hidden = 2
     n_layer = 1
     input_size = None
@@ -14,14 +13,10 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
 
         # Defining the layers
-        self.embedding = nn.Embedding(RNNConfig.input_size, RNNConfig.n_hidden)
-        self.rnn = nn.RNN(RNNConfig.n_hidden, RNNConfig.n_hidden, RNNConfig.n_layer, batch_first=True) # RNN Layer
+        self.rnn = nn.RNN(RNNConfig.input_size, RNNConfig.n_hidden, RNNConfig.n_layer, batch_first=True) # RNN Layer
         self.fc = nn.Linear(RNNConfig.n_hidden, RNNConfig.output_size) # Fully connected layer
 
     def forward(self, x, targets=None):
-        # Pass input through the embedding layer
-        x = self.embedding(x)
-
         # Apply RNN layer
         out, _ = self.rnn(x)
 
