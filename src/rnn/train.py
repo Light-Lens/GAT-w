@@ -64,7 +64,7 @@ class train:
 
         # print the number of tokens
         print(f"{Fore.WHITE}{Style.BRIGHT}{(len(data)/1e6)}", "M total tokens")
-        print(len(RNNConfig.input_size), "vocab size,", len(RNNConfig.output_size), "output size")
+        print(RNNConfig.input_size, "vocab size,", RNNConfig.output_size, "output size")
 
     # data loading
     def get_batch(self):
@@ -133,7 +133,7 @@ class train:
             try:
                 if (iter + 1) % RNNTrainConfig.eval_interval == 0 or iter == RNNTrainConfig.n_steps - 1:
                     losses = self.estimate_loss(RNNTrainConfig.eval_iters)
-                    print(f"step [{iter + 1}/{RNNTrainConfig.n_steps}]: train loss {losses['train']:.{RNNTrainConfig.n_loss_digits}f}")
+                    print(f"step [{iter + 1}/{RNNTrainConfig.n_steps}]: train loss {losses:.{RNNTrainConfig.n_loss_digits}f}")
                     self.losses.append(losses)
                     #NOTE: SUPPORTS DATA DIVISION ONLY UNCOMMENT WHEN DATA DIVISION IS NEEDED.
                     # print(f"step [{iter + 1}/{RNNTrainConfig.n_steps}]: train loss {losses['train']:.{RNNTrainConfig.n_loss_digits}f}, val loss {losses['val']:.{RNNTrainConfig.n_loss_digits}f}")
@@ -162,7 +162,6 @@ class train:
             "device": RNNConfig.device,
             "config": {
                 "n_hidden": RNNConfig.n_hidden,
-                "n_embd": RNNConfig.n_embd,
                 "n_layer": RNNConfig.n_layer,
                 "input_size": RNNConfig.input_size,
                 "output_size": RNNConfig.output_size
